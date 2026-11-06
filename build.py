@@ -1,0 +1,106 @@
+import re, pathlib
+ROOT = pathlib.Path(__file__).parent
+SRC = ROOT / 'src'; DIST = ROOT / 'build'
+orig = (ROOT/'original'/'police-leave-app.html').read_text().split('\n')
+L = lambda a, b: '\n'.join(orig[a-1:b])
+css = L(14, 225) + '\n' + (SRC/'ui_css.css').read_text()
+segA = L(264, 417).split('\n')
+segA = '\n'.join(x for x in segA if not x.startswith("const KEY="))
+segA = re.sub(r"function nextNo\(r\)\{.*?\n\}\n", "", segA, flags=re.S)
+segB = L(478, 679)
+segC = L(707, 780)
+onf = L(885, 907)
+
+def rep(s, a, b):
+    assert a in s, a[:60]
+    return s.replace(a, b)
+segB = rep(segB, "(state.settings.adminPass==='1234'?'<p class=\"how\">ຕົວຢ່າງນີ້ໃຊ້ລະຫັດ <b>1234</b>. ປ່ຽນໄດ້ໃນແຖບ ເຈົ້າໜ້າທີ່ ແລະ ຕັ້ງຄ່າ.</p>':'')",
+              "(state.settings.passIsDefault?'<p class=\"how\">ລະຫັດເລີ່ມຕົ້ນແມ່ນ <b>1234</b>. ກະລຸນາປ່ຽນໃນແຖບ ຕັ້ງຄ່າ ຫຼັງເຂົ້າລະບົບ.</p>':'')")
+segB = rep(segB, "(p?'<b>'+esc(p)+'</b>':'<span class=\"muted\">ຫົວໜ້າໜ່ວຍຍັງບໍ່ໄດ້ຕັ້ງເບີ (ຕັ້ງໄດ້ໃນ ເຈົ້າໜ້າທີ່ ແລະ ຕັ້ງຄ່າ)</span>')",
+              "(p?'<a class=\"tel\" href=\"tel:'+esc(p.replace(/\\s/g,''))+'\">'+esc(p)+'</a>':'<span class=\"muted\">ຫົວໜ້າໜ່ວຍຍັງບໍ່ໄດ້ຕັ້ງເບີ (ຕັ້ງໄດ້ໃນແຖບ ຕັ້ງຄ່າ)</span>')")
+# ids may be numbers-as-strings from the attendance system: compare loosely as strings
+segA = rep(segA, "const off=id=>state.officers.find(o=>o.id===id)", "const off=id=>state.officers.find(o=>String(o.id)===String(id))")
+segB = segB.replace("r.officerId===state.me", "String(r.officerId)===String(state.me)")
+
+core = (SRC/'core.js').read_text()
+page = f'''<!DOCTYPE html>
+<html lang="lo">
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ລະບົບຂໍລາພັກ ຕຳຫຼວດ ເມືອງຄອບ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=Noto+Sans+Lao+Looped:wght@600;700&family=Noto+Sans+Lao:wght@400;500;600;700&display=swap">
+<style>
+{css}
+</style>
+</head>
+<body>
+<div id="cfg" data-base="<?= baseUrl ?>" hidden></div>
+<div id="busy" class="busy" hidden></div>
+<header class="top">
+  <div class="wrap top-in">
+    <div class="brand">
+      <div class="mark" aria-hidden="true">ລພ</div>
+      <div>
+        <h1>ລະບົບຂໍລາພັກ ຕຳຫຼວດປະຈຳການ</h1>
+        <p>ທະນາຄານພັດທະນາລາວ · ໜ່ວຍບໍລິການ ເມືອງຄອບ</p>
+      </div>
+    </div>
+    <div class="top-act">
+      <p class="today" id="today"></p>
+      <button class="icon-btn" id="refresh" type="button" data-act="refresh" aria-label="ໂຫຼດຂໍ້ມູນໃໝ່"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg></button>
+    </div>
+  </div>
+</header>
+<div class="wrap"><p class="demo" id="demo" hidden>ໂໝດທົດລອງ: ເປີດນອກ Google Apps Script · ຂໍ້ມູນເປັນຕົວຢ່າງ ແລະ ບໍ່ໄດ້ບັນທຶກລົງ Google Sheet · ລະຫັດຫົວໜ້າ 1234</p></div>
+<main class="wrap" id="app"></main>
+<nav class="bnav" id="bnav" hidden aria-label="ເມນູຫຼັກ"></nav>
+
+<div id="modal" class="modal" hidden role="dialog" aria-modal="true" aria-label="ໃບຂໍລາພັກ">
+  <div class="modal-card">
+    <button class="close" type="button" data-act="close" aria-label="ປິດ">✕</button>
+    <div id="modal-body"></div>
+  </div>
+</div>
+<div id="xmodal" class="modal" hidden role="dialog" aria-modal="true" aria-label="ຮູບພາບສຳລັບສົ່ງໃນກຸ່ມ">
+  <div class="modal-card">
+    <button class="close" type="button" data-act="xclose" aria-label="ປິດ">✕</button>
+    <div id="xbody"></div>
+  </div>
+</div>
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script>
+{core}
+</script>
+<script>
+(function(){{
+'use strict';
+{segA}
+{(SRC/'ui_state.js').read_text()}
+{segB}
+{(SRC/'ui_views.js').read_text()}
+{segC}
+{onf}
+{(SRC/'ui_tail.js').read_text()}
+}})();
+</script>
+</body>
+</html>
+'''
+assert page.count('<' + '?') == 1, 'stray scriptlet marker'
+DIST.mkdir(exist_ok=True)
+(DIST/'LeaveApp.html').write_text(page)
+(DIST/'Leave.gs').write_text((SRC/'server.gs').read_text() + '\n\n' + core)
+print('built', len(page), 'bytes')
+
+# single-file version for Apps Script (page embedded as a string) -> apps-script/Leave.gs
+import json
+gs = (DIST/'Leave.gs').read_text().replace("  var t = HtmlService.createTemplateFromFile('LeaveApp');", "  var t = HtmlService.createTemplate(LEAVE_PAGE_HTML_);")
+gs += "\n\n/* ===== ໜ້າເວັບ (HTML) ຢູ່ໃນໄຟລ໌ນີ້ເລີຍ ===== */\nvar LEAVE_PAGE_HTML_ = " + json.dumps(page, ensure_ascii=False).replace('</script>', '<\\/script>') + ";\n"
+(ROOT/'apps-script'/'Leave.gs').write_text(gs)
+print('wrote apps-script/Leave.gs')

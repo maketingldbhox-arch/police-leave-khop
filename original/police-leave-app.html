@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="lo">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ລະບົບຂໍລາ ຕຳຫຼວດປະຈຳການ</title>
+</head>
+<body>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=Noto+Sans+Lao+Looped:wght@600;700&family=Noto+Sans+Lao:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: one centred column (max 880px), phone-first. Blue LDB header band, role switch, tabbed views built from cards; a leave form opens as a paper sheet and exports as a light-theme image. */
+:root{
+  --bg:#f1f5f9; --surface:#ffffff; --surface-2:#e8eff6; --line:#d3dde8; --fg:#132230; --muted:#566879;
+  --accent:#2778b9; --accent-ink:#ffffff; --accent-soft:#e1edf8;
+  --good:#1d7f55; --good-soft:#ddf1e7; --warn:#9a5c08; --warn-soft:#fbefd9; --bad:#bf3a30; --bad-soft:#fbe4e1;
+  --shadow:0 1px 2px rgba(19,34,48,.06),0 4px 14px rgba(19,34,48,.05);
+  --scrim:rgba(10,20,30,.55);
+  --f-display:"Noto Sans Lao Looped","Noto Sans Lao","Phetsarath OT",system-ui,sans-serif;
+  --f-body:"Noto Sans Lao","Phetsarath OT",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0e1620; --surface:#15202b; --surface-2:#1c2a37; --line:#2b3c4c; --fg:#e4ecf3; --muted:#97a9ba;
+  --accent:#5aa5e6; --accent-ink:#071421; --accent-soft:#17324a;
+  --good:#55c690; --good-soft:#12301f; --warn:#e8aa4b; --warn-soft:#372811; --bad:#f2736b; --bad-soft:#3a1b19;
+  --shadow:0 1px 2px rgba(0,0,0,.3); --scrim:rgba(0,0,0,.65); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0e1620; --surface:#15202b; --surface-2:#1c2a37; --line:#2b3c4c; --fg:#e4ecf3; --muted:#97a9ba;
+  --accent:#5aa5e6; --accent-ink:#071421; --accent-soft:#17324a;
+  --good:#55c690; --good-soft:#12301f; --warn:#e8aa4b; --warn-soft:#372811; --bad:#f2736b; --bad-soft:#3a1b19;
+  --shadow:0 1px 2px rgba(0,0,0,.3); --scrim:rgba(0,0,0,.65); color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.6;margin:0}
+.wrap{max-width:880px;margin-inline:auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.top{background:var(--accent);color:var(--accent-ink)}
+.top-in{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 16px;padding-block:18px}
+.brand{display:flex;align-items:center;gap:12px;min-width:0}
+.mark{width:44px;height:44px;border-radius:10px;border:2px solid currentColor;display:grid;place-items:center;font-family:var(--f-display);font-weight:700;font-size:16px;flex:none}
+.brand h1{margin:0;font-family:var(--f-display);font-size:clamp(18px,4.4vw,22px);line-height:1.3;font-weight:700;text-wrap:balance}
+.brand p{margin:0;font-size:13px;opacity:.9}
+.today{margin:0;font-size:13px;opacity:.92;font-variant-numeric:tabular-nums}
+.proto{display:flex;flex-wrap:wrap;gap:2px 12px;align-items:center;justify-content:space-between;padding-block:10px;font-size:13px;color:var(--muted)}
+.proto span::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--warn);margin-right:8px;vertical-align:middle}
+.link{background:none;border:0;color:var(--accent);font:inherit;cursor:pointer;padding:4px 0;text-decoration:underline;text-underline-offset:3px}
+main{padding-block:4px 56px}
+.rolebar{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;justify-content:space-between;margin-bottom:10px}
+.seg{display:inline-flex;background:var(--surface-2);border-radius:10px;padding:3px;gap:2px}
+.seg button{border:0;background:transparent;color:var(--muted);font:inherit;font-weight:600;padding:7px 14px;border-radius:8px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--fg);box-shadow:var(--shadow)}
+.me{display:flex;align-items:center;gap:8px;margin:0;font-size:14px}
+.me span{color:var(--muted)}
+select,input,textarea{font:inherit;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%;min-width:0}
+.me select,.reg-head select{width:auto;max-width:100%}
+textarea{resize:vertical}
+input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:16px;overflow-x:auto}
+.tabs button{border:0;background:none;font:inherit;font-weight:600;color:var(--muted);padding:10px 12px;border-bottom:2px solid transparent;margin-bottom:-1px;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:6px}
+.tabs button[aria-selected="true"]{color:var(--accent);border-bottom-color:var(--accent)}
+.badge{background:var(--accent);color:var(--accent-ink);border-radius:999px;font-size:12px;min-width:20px;height:20px;padding:0 6px;display:inline-grid;place-items:center;font-variant-numeric:tabular-nums}
+.view,.stack{display:grid;gap:16px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;box-shadow:var(--shadow);min-width:0}
+.card-head{margin-bottom:12px}
+.card-head h2{margin:0;font-family:var(--f-display);font-size:19px;line-height:1.35}
+.card-head p{margin:2px 0 0;font-size:14px}
+.muted{color:var(--muted)}
+.row-between{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:flex-start}
+.form{display:grid;gap:16px}
+.form .card-head{margin:0}
+fieldset{border:0;padding:0;margin:0;min-width:0}
+legend,.field>label,.sub-label{display:block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:6px;padding:0}
+.req{color:var(--bad)}
+.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.types{display:grid;grid-template-columns:repeat(auto-fill,minmax(165px,1fr));gap:8px}
+.type{position:relative;display:grid;grid-template-columns:auto 1fr;column-gap:10px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer;background:var(--surface)}
+.type input{position:absolute;opacity:0;pointer-events:none}
+.type .code{grid-row:span 2;font-weight:700;font-size:14px;width:40px;height:40px;border-radius:8px;display:grid;place-items:center;background:var(--surface-2);color:var(--fg)}
+.type .tl{font-weight:600;line-height:1.3}
+.type .tn{font-size:12.5px;color:var(--muted);line-height:1.3;font-variant-numeric:tabular-nums}
+.type:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}
+.type:has(input:checked) .code{background:var(--accent);color:var(--accent-ink)}
+.type:has(input:focus-visible){outline:2px solid var(--accent);outline-offset:2px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{position:relative;cursor:pointer}
+.chip input{position:absolute;opacity:0;pointer-events:none}
+.chip span{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:6px 14px;font-size:14px;background:var(--surface)}
+.chip input:checked+span{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.chip input:focus-visible+span{outline:2px solid var(--accent);outline-offset:2px}
+.chip input:disabled+span{opacity:.55;cursor:not-allowed}
+.period{margin:-4px 0 0;font-size:14px;color:var(--muted)}
+.period b{color:var(--fg)}
+.check{display:flex;gap:10px;align-items:flex-start;cursor:pointer;font-size:14px;margin-bottom:8px}
+.check input{width:18px;height:18px;margin-top:3px;flex:none;accent-color:var(--accent);padding:0}
+.pledge{background:var(--surface-2);border-radius:10px;padding:12px 14px;margin:0}
+.checks-box{border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:var(--bg)}
+.checks-box h3{margin:0 0 8px;font-size:13px;color:var(--muted)}
+.checks{list-style:none;margin:0;padding:0;display:grid;gap:6px;font-size:14px}
+.checks li{display:grid;grid-template-columns:20px 1fr;gap:8px;align-items:start;line-height:1.5}
+.checks li::before{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700;margin-top:1px}
+.checks li.ok::before{content:"✓";background:var(--good-soft);color:var(--good)}
+.checks li.warn::before{content:"!";background:var(--warn-soft);color:var(--warn)}
+.checks li.bad::before{content:"✕";background:var(--bad-soft);color:var(--bad)}
+.checks li.bad{color:var(--bad)}
+.checks li.info::before{content:"i";background:var(--surface-2);color:var(--muted);font-family:var(--f-mono)}
+.checks li.info{color:var(--muted)}
+.actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.btn{font:inherit;font-weight:600;border-radius:9px;padding:10px 18px;border:1px solid transparent;cursor:pointer;line-height:1.3}
+.btn.primary{background:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{filter:brightness(1.07)}
+.btn.danger{background:transparent;color:var(--bad);border-color:var(--bad)}
+.btn.ghost{background:var(--surface);color:var(--accent);border-color:var(--line)}
+.btn.sm{padding:6px 12px;font-size:14px}
+.btn[disabled]{opacity:.6;cursor:progress}
+.form-msg{margin:0;font-size:14px}
+.form-msg:empty{display:none}
+.form-msg.bad{color:var(--bad)}
+.form-msg.warn{color:var(--warn)}
+.form-msg.good{color:var(--good)}
+.note{border-radius:10px;padding:10px 14px;font-size:14px;background:var(--warn-soft);border:1px solid var(--line)}
+.hotline{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:10px 14px;background:var(--surface);font-size:14px}
+.hotline b{font-size:16px;font-variant-numeric:tabular-nums;user-select:all}
+.alert{display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center;background:var(--warn-soft)}
+.alert.go{background:var(--accent-soft)}
+.alert p{margin:2px 0 0;font-size:14px}
+.due{color:var(--warn);font-weight:600}
+.due.over{color:var(--bad)}
+.list{list-style:none;margin:0;padding:0;display:grid}
+.list>li{border-top:1px solid var(--line)}
+.list>li:first-child{border-top:0}
+.row-btn{all:unset;box-sizing:border-box;display:flex;width:100%;gap:12px;align-items:center;padding:12px 4px;cursor:pointer}
+.row-btn:hover .r-title{color:var(--accent)}
+.row-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:8px}
+.r-main{display:grid;gap:2px;flex:1;min-width:0}
+.r-top{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.r-sub{font-size:13.5px;color:var(--muted)}
+.chev{color:var(--muted);font-size:22px;line-height:1}
+.li-act{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;padding:0 4px 12px}
+.no{font-family:var(--f-mono),var(--f-body);font-size:13px;color:var(--muted);font-weight:500;font-variant-numeric:tabular-nums}
+.pill{display:inline-flex;align-items:center;border-radius:999px;font-size:12.5px;font-weight:600;padding:1px 10px;line-height:1.7;white-space:nowrap}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+.pill.accent{background:var(--accent-soft);color:var(--accent)}
+.pill.good{background:var(--good-soft);color:var(--good)}
+.pill.bad{background:var(--bad-soft);color:var(--bad)}
+.pill.badsolid{background:var(--bad);color:var(--surface)}
+.ap{display:grid;gap:14px}
+.ap-head{display:flex;gap:12px;justify-content:space-between;align-items:flex-start}
+.ap-head h3{margin:4px 0 0;font-family:var(--f-display);font-size:18px;line-height:1.35}
+.ap-type{margin:2px 0 0;font-size:14px}
+.kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px 16px;margin:0}
+.kv div{min-width:0}
+.kv dt{font-size:12.5px;color:var(--muted);font-weight:600}
+.kv dd{margin:0;font-size:14px;overflow-wrap:anywhere}
+.subform{border:1px dashed var(--line);border-radius:10px;padding:14px;margin-bottom:14px;display:grid;gap:12px;background:var(--bg)}
+.trk{display:grid;gap:8px;padding:12px 4px}
+.trk-top{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between}
+.trk-title{font-size:15px}
+.trk-sub{font-size:13.5px;color:var(--muted)}
+.ret{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.ret input{width:auto;flex:1 1 200px}
+.staff{display:flex;flex-wrap:wrap;gap:8px 12px;justify-content:space-between;align-items:center;padding:12px 4px}
+.staff>div:first-child{display:grid;min-width:0}
+.empty{color:var(--muted);text-align:center;padding:22px 8px;margin:0;font-size:14px}
+.table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);white-space:nowrap;vertical-align:top}
+th{font-size:12.5px;color:var(--muted);font-weight:600;background:var(--surface-2)}
+tbody tr:last-child td{border-bottom:0}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+tr.click{cursor:pointer}
+tr.click:hover td{background:var(--accent-soft)}
+.foot{font-size:13px;color:var(--muted);margin:10px 0 0}
+.reg-head{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:center;margin-bottom:12px}
+.reg-head h2{margin:0;font-family:var(--f-display);font-size:19px}
+h3.sec{font-size:15px;margin:20px 0 8px}
+.how{font-size:13.5px;color:var(--muted);margin:0}
+.how b{color:var(--fg)}
+.login{max-width:440px;margin-inline:auto;width:100%}
+.modal{position:fixed;inset:0;background:var(--scrim);display:grid;place-items:start center;overflow-y:auto;z-index:50;padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+#xmodal{z-index:70}
+.modal-card{position:relative;width:100%;max-width:680px;margin-block:20px}
+.close{position:absolute;top:8px;right:8px;z-index:2;width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--fg);cursor:pointer;font-size:15px}
+.mtool{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between;background:var(--surface);border-radius:10px;padding:10px 54px 10px 14px;margin-bottom:10px;font-size:14px}
+.mnote{color:var(--good);font-weight:600}
+.ximg{display:block;width:100%;height:auto;border-radius:6px;border:1px solid var(--line);background:#fff;margin-top:10px}
+.xbox{background:var(--surface);border-radius:10px;padding:14px;display:grid;gap:10px}
+.paper{position:relative;background:var(--surface);color:var(--fg);border-radius:6px;padding:34px 28px 28px;box-shadow:0 10px 40px rgba(0,0,0,.25)}
+.motto{text-align:center;margin:0 0 18px;font-size:14px;line-height:1.7}
+.paper-meta{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px 16px;font-size:13.5px}
+.paper-title{text-align:center;font-family:var(--f-display);font-size:20px;margin:18px 0 6px}
+.to{margin:0 0 8px;font-size:14px}
+.sect{margin:16px 0 4px;font-weight:700;font-size:14px}
+.pkv{display:grid;grid-template-columns:minmax(110px,34%) 1fr;margin:0;border-top:1px solid var(--line)}
+.pkv dt,.pkv dd{padding:6px 0;border-bottom:1px solid var(--line);font-size:14px;margin:0}
+.pkv dt{color:var(--muted);padding-right:10px}
+.pkv dd{overflow-wrap:anywhere;min-width:0}
+.decision{margin-top:18px;border:1px solid var(--line);border-radius:8px;padding:14px;position:relative}
+.decision p{margin:0 0 4px;font-size:14px}
+.stamp{position:absolute;right:16px;top:-20px;transform:rotate(-7deg);border:3px double currentColor;border-radius:8px;padding:0 14px;font-family:var(--f-display);font-weight:700;font-size:18px;background:var(--surface)}
+.stamp.ok{color:var(--good)}
+.stamp.no{color:var(--bad)}
+.selfret{margin-top:12px;border-radius:10px;background:var(--accent-soft);padding:12px 14px;display:grid;gap:8px}
+.selfret p{margin:0;font-size:14px}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--surface);padding:10px 18px;border-radius:10px;font-size:14px;box-shadow:var(--shadow);z-index:90;width:max-content;max-width:calc(100% - 32px)}
+.footnote{font-size:13px;color:var(--muted);margin:22px 0 0;max-width:70ch}
+/* export canvas: always light, no shadows */
+.exp{position:absolute;left:-100000px;top:0;
+  --bg:#ffffff; --surface:#ffffff; --surface-2:#eef3f8; --line:#cfd9e3; --fg:#132230; --muted:#566879;
+  --accent:#2778b9; --accent-ink:#ffffff; --accent-soft:#e1edf8;
+  --good:#1d7f55; --good-soft:#ddf1e7; --warn:#9a5c08; --warn-soft:#fbefd9; --bad:#bf3a30; --bad-soft:#fbe4e1;
+  color-scheme:light;background:#ffffff;color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.6}
+.exp .paper{box-shadow:none;border-radius:0;padding:36px 34px 24px}
+.exp .table-wrap{overflow:visible}
+.exp td{white-space:normal}
+.exp td .pill,.exp td.no{white-space:nowrap}
+.exp-pad{padding:30px 34px}
+.exp-org{margin:0;font-size:14px;color:var(--muted)}
+.exp-title{margin:2px 0 0;font-family:var(--f-display);font-size:24px}
+.exp-month{margin:0;font-size:16px;font-weight:600;color:var(--accent)}
+.exp-sign{display:flex;justify-content:space-between;gap:24px;margin-top:28px;text-align:center;font-size:14px}
+.exp-foot{margin:22px 0 0;font-size:12px;color:var(--muted);text-align:right}
+@media (max-width:520px){.card{padding:14px}.paper{padding:28px 16px 20px}.ap-head{flex-direction:column}.ap-head .btn{align-self:flex-start}}
+@media (prefers-reduced-motion:no-preference){.toast{animation:toast-in .18s ease-out}@keyframes toast-in{from{opacity:0;transform:translate(-50%,8px)}}}
+</style>
+
+<header class="top">
+  <div class="wrap top-in">
+    <div class="brand">
+      <div class="mark" aria-hidden="true">ລພ</div>
+      <div>
+        <h1>ລະບົບຂໍລາ ຕຳຫຼວດປະຈຳການ</h1>
+        <p>ທະນາຄານພັດທະນາລາວ · ໜ່ວຍບໍລິການ ເມືອງຄອບ</p>
+      </div>
+    </div>
+    <p class="today" id="today"></p>
+  </div>
+</header>
+<div class="wrap proto">
+  <span>ສະບັບຕົວຢ່າງ · ໃບລາທັງໝົດແມ່ນຂໍ້ມູນສົມມຸດ</span>
+  <button class="link" type="button" data-act="reset">ລ້າງ ແລະ ໂຫຼດຂໍ້ມູນຕົວຢ່າງໃໝ່</button>
+</div>
+<main class="wrap" id="app"></main>
+
+<div id="modal" class="modal" hidden role="dialog" aria-modal="true" aria-label="ໃບຂໍລາພັກ">
+  <div class="modal-card">
+    <button class="close" type="button" data-act="close" aria-label="ປິດ">✕</button>
+    <div id="modal-body"></div>
+  </div>
+</div>
+<div id="xmodal" class="modal" hidden role="dialog" aria-modal="true" aria-label="ຮູບພາບສຳລັບສົ່ງໃນກຸ່ມ">
+  <div class="modal-card">
+    <button class="close" type="button" data-act="xclose" aria-label="ປິດ">✕</button>
+    <div id="xbody"></div>
+  </div>
+</div>
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script>
+(function(){
+'use strict';
+const RATE=50000;
+const HEAD='ຫົວໜ້າໜ່ວຍບໍລິການ ເມືອງຄອບ';
+const KEY='ldb-mkx-leave-proto-v3';
+const TYPES={
+  'ອຊ':{label:'ອອກຊົ່ວຄາວ',note:'ບໍ່ເກີນ 2 ຊົ່ວໂມງ',kind:'time',notice:0,deduct:false},
+  'ລ1':{label:'ເຄິ່ງມື້ເຊົ້າ',note:'08:30–11:30',kind:'fixed',from:'08:30',to:'11:30',notice:1,deduct:false},
+  'ລ2':{label:'ເຄິ່ງມື້ບ່າຍ',note:'12:30–17:00',kind:'fixed',from:'12:30',to:'17:00',notice:1,deduct:false},
+  'ລ3':{label:'ໝົດມື້',note:'1 ມື້ ລວມພາກຄ່ຳ',kind:'day',notice:1,deduct:true},
+  'ລ4':{label:'ຫຼາຍມື້',note:'2 ມື້ຂຶ້ນໄປ',kind:'range',notice:3,deduct:true,pks:true},
+  'ໜທ':{label:'ໜ້າທີ່ ປກສ',note:'ຕາມຄຳສັ່ງ ປກສ',kind:'range',notice:0,deduct:true,pks:true}
+};
+const REASONS=['ເຈັບປ່ວຍ','ທຸລະກິດສ່ວນຕົວ/ຄອບຄົວ','ງານບຸນ/ງານດອງ/ງານສົບ','ວຽກ ປກສ','ອື່ນໆ'];
+const STATUS={
+  pending:{t:'ລໍຖ້າອະນຸມັດ',c:'warn'},
+  approved:{t:'ອະນຸມັດແລ້ວ',c:'accent'},
+  returned:{t:'ກັບຄືນແລ້ວ',c:'good'},
+  rejected:{t:'ບໍ່ອະນຸມັດ',c:'bad'},
+  phone:{t:'ແຈ້ງທາງໂທ · ລໍຖ້າໃບລາ',c:'warn'},
+  absent:{t:'ຂາດ',c:'badsolid'}
+};
+const BUSY=['pending','approved','phone','returned'];
+const WD=['ອາທິດ','ຈັນ','ອັງຄານ','ພຸດ','ພະຫັດ','ສຸກ','ເສົາ'];
+const MONTHS=['ມັງກອນ','ກຸມພາ','ມີນາ','ເມສາ','ພຶດສະພາ','ມິຖຸນາ','ກໍລະກົດ','ສິງຫາ','ກັນຍາ','ຕຸລາ','ພະຈິກ','ທັນວາ'];
+
+/* ---------- helpers ---------- */
+const $=(s,el)=>(el||document).querySelector(s);
+const pad=n=>String(n).padStart(2,'0');
+const iso=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const hm=d=>pad(d.getHours())+':'+pad(d.getMinutes());
+const today=()=>iso(new Date());
+const nowL=()=>{const d=new Date();return iso(d)+'T'+hm(d);};
+const dOf=s=>{const p=s.slice(0,10).split('-').map(Number);return new Date(p[0],p[1]-1,p[2]);};
+const addDays=(s,n)=>{const d=dOf(s);d.setDate(d.getDate()+n);return iso(d);};
+const dt=(d,t)=>new Date(d+'T'+(t||'00:00')+':00');
+const diffDays=(a,b)=>Math.round((dOf(b)-dOf(a))/864e5);
+const fD=s=>s?s.slice(8,10)+'/'+s.slice(5,7)+'/'+s.slice(0,4):'';
+const fDT=s=>s?fD(s)+' '+s.slice(11,16):'';
+const fDate=d=>fD(iso(d))+' '+hm(d);
+const wd=s=>WD[dOf(s).getDay()];
+const money=n=>n.toLocaleString('en-US')+' ກີບ';
+const fmtH=h=>h<1?Math.max(1,Math.round(h*60))+' ນາທີ':(Math.round(h*10)/10)+' ຊົ່ວໂມງ';
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid=()=>'r'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const get=id=>state.records.find(x=>x.id===id);
+const off=id=>state.officers.find(o=>o.id===id)||{id:id,rank:'',name:'(ບໍ່ພົບລາຍຊື່)',phone:''};
+const actives=()=>state.officers.filter(o=>o.active);
+const full=o=>(o.rank?o.rank+' ':'')+o.name;
+const reasonText=r=>r.reason==='ອື່ນໆ'?(r.reasonOther||'ອື່ນໆ'):(r.reason||'—');
+const monthLabel=m=>MONTHS[Number(m.slice(5,7))-1]+' '+m.slice(0,4);
+
+function span(r){
+  const t=TYPES[r.type],end=r.endDate||r.startDate;
+  if(t.kind==='time')return [dt(r.startDate,r.timeFrom),dt(r.startDate,r.timeTo)];
+  if(t.kind==='fixed')return [dt(r.startDate,t.from),dt(r.startDate,t.to)];
+  return [dt(r.startDate,'00:00'),dt(end,'23:59')];
+}
+const overlap=(a,b)=>a[0]<b[1]&&b[0]<a[1];
+function expRet(r){
+  const t=TYPES[r.type];
+  if(t.kind==='time'||t.kind==='fixed')return span(r)[1];
+  return dt(addDays(r.endDate||r.startDate,1),'08:30');
+}
+function qty(r){
+  const t=TYPES[r.type];
+  if(t.kind==='time'){const s=span(r);return Math.max(0,(s[1]-s[0])/36e5);}
+  if(t.kind==='fixed')return 0.5;
+  if(t.kind==='day')return 1;
+  return diffDays(r.startDate,r.endDate||r.startDate)+1;
+}
+function qtyText(r){
+  const t=TYPES[r.type];
+  if(t.kind==='time')return fmtH(qty(r));
+  if(t.kind==='fixed')return 'ເຄິ່ງມື້';
+  return qty(r)+' ມື້';
+}
+function period(r){
+  const t=TYPES[r.type],end=r.endDate||r.startDate;
+  if(t.kind==='time')return 'ວັນ'+wd(r.startDate)+' ທີ '+fD(r.startDate)+' ເວລາ '+r.timeFrom+'–'+r.timeTo;
+  if(t.kind==='fixed')return 'ວັນ'+wd(r.startDate)+' ທີ '+fD(r.startDate)+' ('+t.from+'–'+t.to+')';
+  if(t.kind==='day'||end===r.startDate)return 'ວັນ'+wd(r.startDate)+' ທີ '+fD(r.startDate);
+  return 'ແຕ່ວັນທີ '+fD(r.startDate)+' ຫາ '+fD(end);
+}
+function daysIn(r,ym){
+  let n=0,d=r.startDate;const end=r.endDate||r.startDate;
+  for(let i=0;i<400&&d<=end;i++){if(d.slice(0,7)===ym)n++;d=addDays(d,1);}
+  return n;
+}
+function nextNo(r){
+  const y=(r.submittedAt||nowL()).slice(0,4);
+  state.seq[y]=(state.seq[y]||0)+1;
+  return String(state.seq[y]).padStart(3,'0')+'/ລພ.ໜບຄ';
+}
+function busyRec(officerId,s,exceptId){
+  return state.records.find(x=>x.id!==exceptId&&x.officerId===officerId&&BUSY.indexOf(x.status)>=0&&overlap(span(x),s));
+}
+function coverName(r){return r.pksReplacement?r.pksReplacement+' (ປກສ)':(r.handoverTo?full(off(r.handoverTo)):'—');}
+
+/* ---------- rule checks ---------- */
+function checks(r){
+  const t=TYPES[r.type],out=[],s=span(r);
+  if(!(s[1]>s[0]))out.push({lv:'bad',tx:'ເວລາ ຫຼື ວັນທີ ບໍ່ຖືກຕ້ອງ: ເວລາສິ້ນສຸດຕ້ອງຫຼັງເວລາເລີ່ມ'});
+  const others=actives().filter(o=>o.id!==r.officerId);
+  const onDuty=others.filter(o=>!busyRec(o.id,s,r.id));
+  if(!onDuty.length){
+    let txt;
+    if(!others.length)txt='ບໍ່ມີເຈົ້າໜ້າທີ່ອື່ນຢູ່ປະຈຳການ';
+    else{const x=busyRec(others[0].id,s,r.id);txt=others.map(full).join(', ')+' ລາຊ່ວງດຽວກັນ'+(others.length===1&&x?' ('+(x.no||'ແຈ້ງທາງໂທ')+' · '+x.type+' '+TYPES[x.type].label+')':'');}
+    out.push(r.pksReplacement?{lv:'warn',tx:'ລາພ້ອມກັນ: '+txt+'. ມີຜູ້ແທນຈາກ ປກສ: '+r.pksReplacement}:{lv:'bad',tx:'ຫ້າມລາພ້ອມກັນ: '+txt+'. ຕ້ອງມີຜູ້ແທນຈາກ ປກສ'});
+  }else if(r.pksReplacement){
+    out.push({lv:'ok',tx:'ຈຸດປະຈຳການມີຄົນຢູ່: '+onDuty.map(full).join(', ')+' · ຜູ້ແທນ ປກສ: '+r.pksReplacement});
+  }else{
+    const h=r.handoverTo?off(r.handoverTo):null;
+    if(!h||!onDuty.find(o=>o.id===h.id))out.push({lv:'bad',tx:'ຜູ້ຮັບມອບໜ້າທີ່ '+(h?full(h)+' ບໍ່ຢູ່ຊ່ວງດຽວກັນ':'ຍັງບໍ່ໄດ້ເລືອກ')+': ເລືອກ '+onDuty.map(full).join(' ຫຼື ')});
+    else out.push({lv:'ok',tx:'ຈຸດປະຈຳການມີຄົນຢູ່: '+full(h)+' ຮັບມອບໜ້າທີ່'});
+  }
+  if(r.filing==='retro'){
+    out.push({lv:'warn',tx:'ຍື່ນຍ້ອນຫຼັງ (ສຸກເສີນ): ໂທແຈ້ງ '+(r.callTo||'…')+' ເວລາ '+(r.callTime||'…')});
+  }else if(t.notice>0){
+    const n=diffDays((r.submittedAt||nowL()).slice(0,10),r.startDate);
+    out.push(n>=t.notice?{lv:'ok',tx:'ຍື່ນລ່ວງໜ້າ '+n+' ມື້ (ລະບຽບ: '+t.notice+' ມື້)'}:{lv:'warn',tx:'ຍື່ນລ່ວງໜ້າບໍ່ທັນກຳນົດ: '+Math.max(n,0)+' ມື້ (ລະບຽບ: '+t.notice+' ມື້)'});
+  }else if(r.type==='ອຊ'){
+    out.push({lv:'ok',tx:'ອອກຊົ່ວຄາວ: ແຈ້ງຫົວໜ້າ ຫຼື ຜູ້ຮັບຜິດຊອບກ່ອນອອກ'});
+  }
+  const miss=[];
+  if(!r.reason)miss.push('ເຫດຜົນ');
+  if(r.reason==='ອື່ນໆ'&&!r.reasonOther)miss.push('ລະບຸເຫດຜົນອື່ນ');
+  if(!r.destination)miss.push('ສະຖານທີ່ທີ່ຈະໄປ');
+  if(!r.phone)miss.push('ເບີໂທຕິດຕໍ່');
+  if(r.type!=='ອຊ'&&(!r.emergencyName||!r.emergencyPhone))miss.push('ຜູ້ຕິດຕໍ່ ແລະ ເບີໂທສຸກເສີນ');
+  if((r.type==='ໜທ'||r.reason==='ວຽກ ປກສ')&&!r.orderNo)miss.push('ເລກທີຄຳສັ່ງ ປກສ');
+  if(r.filing==='retro'&&(!r.callTime||!r.callTo))miss.push('ເວລາໂທ ແລະ ຜູ້ຮັບແຈ້ງ');
+  out.push(miss.length?{lv:'bad',tx:'ຂໍ້ມູນຍັງຂາດ: '+miss.join(', ')}:{lv:'ok',tx:'ຂໍ້ມູນຄົບ: ເຫດຜົນ, ສະຖານທີ່, ເບີໂທຕິດຕໍ່'+(r.type!=='ອຊ'?', ເບີໂທສຸກເສີນ':'')});
+  if(r.type==='ອຊ'&&qty(r)>2)out.push({lv:'bad',tx:'ອອກ '+fmtH(qty(r))+' ເກີນ 2 ຊົ່ວໂມງ: ໃຫ້ຂໍລາເຄິ່ງມື້ (ລ1 ຫຼື ລ2)'});
+  if(r.type==='ລ4'&&qty(r)<2)out.push({lv:'bad',tx:'ລ4 ຕ້ອງ 2 ມື້ຂຶ້ນໄປ: ລາ 1 ມື້ ໃຫ້ເລືອກ ລ3'});
+  if(t.pks)out.push(r.pksNotified?{lv:'ok',tx:'ແຈ້ງ ປກສ ເມືອງຄອບແລ້ວ'+(r.pksContact?': '+r.pksContact:'')}:{lv:'bad',tx:'ຍັງບໍ່ໄດ້ແຈ້ງ ປກສ ເມືອງຄອບ'});
+  if(r.reason==='ເຈັບປ່ວຍ'&&qty(r)>2&&!r.attachMed)out.push({lv:'warn',tx:'ລາປ່ວຍເກີນ 2 ມື້: ຄວນແນບໃບຢັ້ງຢືນແພດ'});
+  if(t.kind==='fixed')out.push({lv:'info',tx:'ລາເຄິ່ງມື້ ບໍ່ຍົກເວັ້ນໜ້າທີ່ພາກຄ່ຳ: ຕ້ອງກັບມາປະຈຳການ 18:00'});
+  out.push(t.deduct?{lv:'info',tx:'ບໍ່ໄດ້ອັດຕາກິນ '+qty(r)+' ມື້ (−'+money(qty(r)*RATE)+')'}:{lv:'info',tx:'ບໍ່ຫັກອັດຕາກິນ (ຍັງໄດ້ 50,000 ກີບ/ມື້)'});
+  return out;
+}
+const checksHTML=list=>list.map(c=>'<li class="'+c.lv+'">'+esc(c.tx)+'</li>').join('');
+
+function approveText(r){
+  const t=TYPES[r.type];
+  const verb={'ອຊ':'ອອກນອກຈຸດປະຈຳການຊົ່ວຄາວ','ລ1':'ລາເຄິ່ງມື້ຊ່ວງເຊົ້າ','ລ2':'ລາເຄິ່ງມື້ຊ່ວງບ່າຍ','ລ3':'ລາໝົດມື້','ລ4':'ລາພັກ '+qty(r)+' ມື້','ໜທ':'ໄປປະຕິບັດໜ້າທີ່ຕາມຄຳສັ່ງ ປກສ ເລກທີ '+(r.orderNo||'…')}[r.type];
+  let back;
+  if(t.kind==='time')back='ໃຫ້ກັບມາກ່ອນເວລາ '+r.timeTo+'.';
+  else if(r.type==='ລ1')back='ໃຫ້ກັບມາປະຈຳການ 12:30 ແລະ ພາກຄ່ຳ 18:00.';
+  else if(r.type==='ລ2')back='ໃຫ້ກັບມາປະຈຳການພາກຄ່ຳ 18:00.';
+  else back='ໃຫ້ກັບມາປະຈຳການ ວັນທີ '+fD(addDays(r.endDate||r.startDate,1))+' ເວລາ 08:30.';
+  const pre=r.filing==='retro'?'ອະນຸມັດທາງໂທລະສັບ ເວລາ '+r.callTime+'. ':'';
+  return pre+'ເຫັນດີອະນຸມັດ ໃຫ້ '+full(off(r.officerId))+' '+verb+' '+period(r)+'. ມອບໃຫ້ '+coverName(r)+' ປະຈຳການແທນ. '+back;
+}
+
+/* ---------- sample data ---------- */
+function seed(){
+  const T=today(),now=new Date();
+  const officers=[
+    {id:'o1',rank:'ສທ',name:'ຈັນທະການ ຄຳວິພາ',phone:'020 9970 8556',active:true},
+    {id:'o2',rank:'ພັຕ',name:'ແກ້ວ ວົງສາ',phone:'020 9538 7448',active:true}
+  ];
+  const base={reasonOther:'',orderNo:'',detail:'',attachMed:false,attachOrder:false,filing:'advance',callTime:'',callTo:'',pksReplacement:'',pksNotified:false,pksContact:'',decision:null,returnedAt:'',returnBy:'',late:0,timeFrom:'',timeTo:'',no:'',emergencyName:'',emergencyPhone:''};
+  const E1={emergencyName:'ພັນລະຍາ (ຕົວຢ່າງ)',emergencyPhone:'020 1111 2222'};
+  const E2={emergencyName:'ພໍ່ (ຕົວຢ່າງ)',emergencyPhone:'020 3333 4444'};
+  const S=(o,x)=>Object.assign({id:uid()+Math.random().toString(36).slice(2,5),officerId:o,handoverTo:o==='o1'?'o2':'o1'},base,o==='o1'?E1:E2,x,{endDate:x.endDate||x.startDate,phone:o==='o1'?officers[0].phone:officers[1].phone});
+  // an outing for o2 that is going on right now
+  const f=new Date(now.getTime()-30*6e4),t2=new Date(now.getTime()+60*6e4);
+  const fromHM=iso(f)===T?hm(f):'00:05',toHM=iso(t2)===T?hm(t2):'23:59';
+  const recs=[
+    S('o1',{type:'ລ3',startDate:addDays(T,-20),reason:'ງານບຸນ/ງານດອງ/ງານສົບ',detail:'ງານບຸນຂຶ້ນເຮືອນໃໝ່ ຂອງຍາດພີ່ນ້ອງ',destination:'ບ້ານເກີດ, ເມືອງຄອບ',submittedAt:addDays(T,-23)+'T10:05',status:'returned',decidedAt:addDays(T,-23)+'T14:30',returnedAt:addDays(T,-19)+'T08:20',returnBy:'self'}),
+    S('o2',{type:'ອຊ',startDate:addDays(T,-12),timeFrom:'09:30',timeTo:'10:40',reason:'ທຸລະກິດສ່ວນຕົວ/ຄອບຄົວ',detail:'ໄປຈ່າຍຄ່າໄຟຟ້າ',destination:'ຫ້ອງການໄຟຟ້າ ເມືອງຄອບ',submittedAt:addDays(T,-12)+'T09:15',status:'returned',decidedAt:addDays(T,-12)+'T09:20',returnedAt:addDays(T,-12)+'T10:35',returnBy:'self'}),
+    S('o2',{type:'ລ1',startDate:addDays(T,-6),reason:'ທຸລະກິດສ່ວນຕົວ/ຄອບຄົວ',detail:'ສ້ອມແປງລົດຈັກ',destination:'ຮ້ານສ້ອມລົດ ໃນເມືອງ',submittedAt:addDays(T,-6)+'T07:40',status:'rejected',decidedAt:addDays(T,-6)+'T07:55',comment:'ບໍ່ອະນຸມັດ ເນື່ອງຈາກຍື່ນມື້ດຽວກັນ ບໍ່ທັນກຳນົດລ່ວງໜ້າ 1 ມື້ ແລະ ຊ່ວງເຊົ້າມື້ນີ້ມີລູກຄ້າຫຼາຍ. ໃຫ້ຍື່ນໃໝ່ສຳລັບມື້ອື່ນ.'}),
+    S('o2',{type:'ລ2',startDate:addDays(T,-3),reason:'ທຸລະກິດສ່ວນຕົວ/ຄອບຄົວ',detail:'ໄປຮັບເອກະສານທີ່ຫ້ອງການເມືອງ',destination:'ຫ້ອງການເມືອງຄອບ',submittedAt:addDays(T,-5)+'T15:10',status:'returned',decidedAt:addDays(T,-5)+'T16:00',returnedAt:addDays(T,-3)+'T16:40',returnBy:'head'}),
+    S('o1',{type:'ອຊ',startDate:T,timeFrom:fromHM,timeTo:toHM,reason:'ທຸລະກິດສ່ວນຕົວ/ຄອບຄົວ',detail:'ໄປຖອນເງິນເດືອນ ແລະ ຊື້ເຄື່ອງໃຊ້',destination:'ຕະຫຼາດເມືອງຄອບ',submittedAt:T+'T'+fromHM,status:'approved',decidedAt:T+'T'+fromHM}),
+    S('o2',{type:'ລ1',startDate:addDays(T,1),reason:'ທຸລະກິດສ່ວນຕົວ/ຄອບຄົວ',detail:'ພາລູກໄປລົງທະບຽນໂຮງຮຽນ',destination:'ໂຮງຮຽນປະຖົມ ໃນເມືອງ',submittedAt:addDays(T,-1)+'T11:00',status:'approved',decidedAt:addDays(T,-1)+'T13:45'}),
+    S('o1',{type:'ລ3',startDate:addDays(T,3),reason:'ງານບຸນ/ງານດອງ/ງານສົບ',detail:'ງານດອງນ້ອງສາວ',destination:'ເມືອງໄຊຍະບູລີ',submittedAt:T+'T08:15',status:'pending'}),
+    S('o2',{type:'ໜທ',startDate:addDays(T,5),reason:'ວຽກ ປກສ',orderNo:'112/ປກສ.ຄອບ',detail:'ເຂົ້າຮ່ວມກອງປະຊຸມສະຫຼຸບວຽກປະຈຳເດືອນ',destination:'ປກສ ເມືອງຄອບ',attachOrder:true,pksNotified:true,pksContact:'ຫ້ອງການ ປກສ ເມືອງຄອບ',submittedAt:T+'T09:02',status:'pending'})
+  ];
+  recs.sort((a,b)=>a.submittedAt.localeCompare(b.submittedAt));
+  state={role:'officer',me:'o1',tab:{officer:'new',head:'approve'},seq:{},officers:officers,settings:{adminPass:'1234',unitPhone:''},records:recs};
+  recs.forEach(r=>{
+    r.no=nextNo(r);
+    if(r.status!=='pending')r.decision={result:r.status==='rejected'?'rejected':'approved',by:HEAD,at:r.decidedAt,comment:r.comment||approveText(r)};
+    if(r.returnedAt)r.late=Math.max(0,(new Date(r.returnedAt)-expRet(r))/36e5);
+    delete r.decidedAt;delete r.comment;
+  });
+  recs.push(S('o1',{type:'ລ2',startDate:addDays(T,-1),reason:'',detail:'ລົດຈັກເພ້ ຢູ່ກາງທາງກັບຈາກພັກທ່ຽງ',destination:'',emergencyName:'',emergencyPhone:'',filing:'retro',callTime:'12:20',callTo:'ຫົວໜ້າໜ່ວຍບໍລິການ',submittedAt:'',status:'phone',returnedAt:addDays(T,-1)+'T14:05',returnBy:'head',late:0,phoneLog:{at:addDays(T,-1)+'T12:22',by:'ຫົວໜ້າໜ່ວຍບໍລິການ',deadline:T+'T23:59'}}));
+  return state;
+}
+
+/* ---------- state ---------- */
+let state=null;
+function load(){try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&Array.isArray(s.records)&&Array.isArray(s.officers))return s;}catch(e){}return null;}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){}}
+state=load()||seed();
+const ui={phoneOpen:false,month:null,headAuthed:false,confirmDel:null};
+const pendUI={};
+let DL=null;
+function ensureMe(){if(!actives().find(o=>o.id===state.me)){const a=actives()[0];state.me=a?a.id:'';}}
+ensureMe();
+function newDraft(){
+  const o=off(state.me),h=actives().find(x=>x.id!==o.id);
+  return {officerId:o.id,type:'ລ2',startDate:addDays(today(),1),endDate:addDays(today(),2),timeFrom:'09:00',timeTo:'10:00',reason:'',reasonOther:'',orderNo:'',detail:'',destination:'',phone:o.phone||'',emergencyName:'',emergencyPhone:'',attachMed:false,attachOrder:false,filing:'advance',callTime:'',callTo:'ຫົວໜ້າໜ່ວຍບໍລິການ',handoverTo:h?h.id:'',pksReplacement:'',pksNotified:false,pksContact:'',pledge:false,linkId:null};
+}
+let draft=newDraft();
+function draftRec(){
+  const t=TYPES[draft.type];
+  const r=Object.assign({},draft,{id:draft.linkId||'__draft',submittedAt:nowL()});
+  if(t.kind!=='range')r.endDate=r.startDate;
+  if(t.kind==='fixed'){r.timeFrom=t.from;r.timeTo=t.to;}
+  if(t.kind==='day'||t.kind==='range'){r.timeFrom='';r.timeTo='';}
+  return r;
+}
+
+/* ---------- small renderers ---------- */
+const pill=r=>'<span class="pill '+STATUS[r.status].c+'">'+STATUS[r.status].t+(r.status==='returned'&&r.late>0.01?' · ຊ້າ '+fmtH(r.late):'')+(r.status==='phone'&&r.returnedAt?' · ກັບແລ້ວ':'')+'</span>';
+const empty=t=>'<p class="empty">'+t+'</p>';
+function itemRow(r,showName){
+  return '<li><button class="row-btn" type="button" data-act="detail" data-id="'+r.id+'"><span class="r-main"><span class="r-top"><span class="no">'+(r.no||'ຍັງບໍ່ມີເລກທີ')+'</span>'+pill(r)+'</span><span class="r-title">'+(showName?esc(full(off(r.officerId)))+' · ':'')+'<b>'+r.type+'</b> '+TYPES[r.type].label+'</span><span class="r-sub">'+esc(period(r))+' · '+esc(reasonText(r))+'</span></span><span class="chev" aria-hidden="true">›</span></button>'+(canSelfReturn(r)?'<div class="li-act"><button class="btn primary sm" type="button" data-act="self-return" data-id="'+r.id+'">ກັບຄືນ</button><span class="r-sub">ກົດເມື່ອກັບມາຮອດຈຸດປະຈຳການ · ກຳນົດກັບ '+fDate(expRet(r))+'</span></div>':'')+'</li>';
+}
+function dueText(r){
+  const d=r.phoneLog.deadline,over=new Date()>new Date(d);
+  return '<span class="due'+(over?' over':'')+'">'+(over?'ເກີນກຳນົດຍື່ນໃບລາ: ':'ຕ້ອງຍື່ນໃບລາຍ້ອນຫຼັງກ່ອນ ')+fDT(d)+'</span>';
+}
+function hotline(){
+  const p=state.settings.unitPhone;
+  return '<div class="hotline"><span>ແຈ້ງລາສຸກເສີນ ໂທຫາຫົວໜ້າໜ່ວຍບໍລິການ:</span>'+(p?'<b>'+esc(p)+'</b>':'<span class="muted">ຫົວໜ້າໜ່ວຍຍັງບໍ່ໄດ້ຕັ້ງເບີ (ຕັ້ງໄດ້ໃນ ເຈົ້າໜ້າທີ່ ແລະ ຕັ້ງຄ່າ)</span>')+'</div>';
+}
+const canSelfReturn=r=>state.role==='officer'&&r.officerId===state.me&&!r.returnedAt&&((r.status==='approved'&&new Date()>=span(r)[0])||r.status==='phone');
+const unacked=()=>state.records.filter(r=>r.returnBy==='self'&&r.returnAck===false);
+
+/* ---------- officer views ---------- */
+function officerNew(){
+  const o=off(state.me),d=draft;
+  const link=d.linkId?get(d.linkId):null;
+  const others=actives().filter(x=>x.id!==o.id);
+  return hotline()+'<form id="lf" class="card form" novalidate>'+
+  '<div class="card-head"><h2>ຂຽນໃບຂໍລາພັກ</h2><p class="muted">ຜູ້ຂໍລາ: <b>'+esc(full(o))+'</b> · ປກສ ເມືອງຄອບ</p></div>'+
+  (link?'<div class="note">ຍື່ນຍ້ອນຫຼັງ ສຳລັບການແຈ້ງທາງໂທ ວັນທີ '+fD(link.startDate)+' ເວລາ '+esc(link.callTime)+' · '+dueText(link)+'</div>':'')+
+  '<fieldset class="field"><legend>ປະເພດການລາ</legend><div class="types">'+Object.keys(TYPES).map(k=>{const t=TYPES[k];return '<label class="type"><input type="radio" name="type" value="'+k+'"'+(d.type===k?' checked':'')+'><span class="code">'+k+'</span><span class="tl">'+t.label+'</span><span class="tn">'+t.note+'</span></label>';}).join('')+'</div></fieldset>'+
+  '<div class="row">'+
+    '<div class="field"><label for="f-start" id="l-start">ວັນທີ</label><input type="date" id="f-start" name="startDate" value="'+d.startDate+'"></div>'+
+    '<div class="field" data-show="range"><label for="f-end">ຫາວັນທີ</label><input type="date" id="f-end" name="endDate" value="'+d.endDate+'"></div>'+
+    '<div class="field" data-show="time"><label for="f-tf">ເວລາອອກ</label><input type="time" id="f-tf" name="timeFrom" value="'+d.timeFrom+'"></div>'+
+    '<div class="field" data-show="time"><label for="f-tt">ເວລາກັບ</label><input type="time" id="f-tt" name="timeTo" value="'+d.timeTo+'"></div>'+
+  '</div>'+
+  '<p class="period" id="f-period"></p>'+
+  '<fieldset class="field"><legend>ເຫດຜົນ</legend><div class="chips">'+REASONS.map(x=>'<label class="chip"><input type="radio" name="reason" value="'+x+'"'+(d.reason===x?' checked':'')+'><span>'+x+'</span></label>').join('')+'</div></fieldset>'+
+  '<div class="field" data-show="reasonOther"><label for="f-ro">ລະບຸເຫດຜົນ</label><input id="f-ro" name="reasonOther" value="'+esc(d.reasonOther)+'"></div>'+
+  '<div class="field" data-show="order"><label for="f-order">ເລກທີຄຳສັ່ງ ປກສ</label><input id="f-order" name="orderNo" placeholder="ເຊັ່ນ 112/ປກສ.ຄອບ" value="'+esc(d.orderNo)+'"></div>'+
+  '<div class="field"><label for="f-detail">ລາຍລະອຽດເຫດຜົນ</label><textarea id="f-detail" name="detail" rows="2">'+esc(d.detail)+'</textarea></div>'+
+  '<div class="row">'+
+    '<div class="field"><label for="f-dest">ສະຖານທີ່ທີ່ຈະໄປ</label><input id="f-dest" name="destination" value="'+esc(d.destination)+'"></div>'+
+    '<div class="field"><label for="f-phone">ເບີໂທຕິດຕໍ່ໃນເວລາລາ</label><input id="f-phone" name="phone" inputmode="tel" value="'+esc(d.phone)+'"></div>'+
+  '</div>'+
+  '<fieldset class="field" data-show="emerg"><legend>ຕິດຕໍ່ສຸກເສີນ (ກໍລະນີໂທຫາຜູ້ລາບໍ່ໄດ້)</legend><div class="row">'+
+    '<div class="field"><label for="f-en" class="sub-label">ຊື່ ແລະ ຄວາມສຳພັນ</label><input id="f-en" name="emergencyName" placeholder="ເຊັ່ນ ພັນລະຍາ, ພໍ່, ແມ່" value="'+esc(d.emergencyName)+'"></div>'+
+    '<div class="field"><label for="f-ep" class="sub-label">ເບີໂທສຸກເສີນ</label><input id="f-ep" name="emergencyPhone" inputmode="tel" value="'+esc(d.emergencyPhone)+'"></div>'+
+  '</div></fieldset>'+
+  '<fieldset class="field"><legend>ເອກະສານຕິດຄັດ</legend><div class="chips"><label class="chip"><input type="checkbox" id="f-med" name="attachMed"'+(d.attachMed?' checked':'')+'><span>ໃບຢັ້ງຢືນແພດ</span></label><label class="chip"><input type="checkbox" id="f-ord" name="attachOrder"'+(d.attachOrder?' checked':'')+'><span>ຄຳສັ່ງ ປກສ</span></label></div></fieldset>'+
+  '<fieldset class="field"><legend>ການຍື່ນ</legend><div class="chips"><label class="chip"><input type="radio" name="filing" value="advance"'+(d.filing==='advance'?' checked':'')+(link?' disabled':'')+'><span>ຍື່ນລ່ວງໜ້າ</span></label><label class="chip"><input type="radio" name="filing" value="retro"'+(d.filing==='retro'?' checked':'')+(link?' disabled':'')+'><span>ຍື່ນຍ້ອນຫຼັງ (ສຸກເສີນ)</span></label></div></fieldset>'+
+  '<div class="row" data-show="retro">'+
+    '<div class="field"><label for="f-ct">ເວລາໂທແຈ້ງ</label><input type="time" id="f-ct" name="callTime" value="'+esc(d.callTime)+'"></div>'+
+    '<div class="field"><label for="f-cto">ໂທແຈ້ງຫາ</label><input id="f-cto" name="callTo" value="'+esc(d.callTo)+'"></div>'+
+  '</div>'+
+  '<fieldset class="field"><legend>ການມອບໜ້າທີ່</legend><div class="row">'+
+    '<div class="field"><label for="f-ho" class="sub-label">ຜູ້ຮັບມອບໜ້າທີ່ (ຢູ່ປະຈຳການ)</label><select id="f-ho" name="handoverTo">'+(others.length?others.map(x=>'<option value="'+x.id+'"'+(x.id===d.handoverTo?' selected':'')+'>'+esc(full(x))+'</option>').join(''):'<option value="">ບໍ່ມີເຈົ້າໜ້າທີ່ອື່ນ</option>')+'</select></div>'+
+    '<div class="field"><label for="f-rep" class="sub-label">ຜູ້ມາແທນຈາກ ປກສ (ຖ້າມີ)</label><input id="f-rep" name="pksReplacement" value="'+esc(d.pksReplacement)+'" placeholder="ຍົດ, ຊື່ ແລະ ນາມສະກຸນ"></div>'+
+  '</div></fieldset>'+
+  '<div class="field" data-show="pks"><label class="check" for="f-pksn"><input type="checkbox" id="f-pksn" name="pksNotified"'+(d.pksNotified?' checked':'')+'><span>ແຈ້ງ ປກສ ເມືອງຄອບແລ້ວ</span></label><input id="f-pkc" name="pksContact" placeholder="ຜູ້ຮັບແຈ້ງ ແລະ ເບີໂທ" value="'+esc(d.pksContact)+'"></div>'+
+  '<div class="checks-box"><h3>ກວດຕາມລະບຽບ (ອັດຕະໂນມັດ)</h3><ul class="checks" id="f-checks"></ul></div>'+
+  '<label class="check pledge" for="f-pledge"><input type="checkbox" id="f-pledge" name="pledge"'+(d.pledge?' checked':'')+'><span>ຂ້າພະເຈົ້າຂໍຢັ້ງຢືນວ່າ ຂໍ້ມູນຂ້າງເທິງເປັນຄວາມຈິງ ແລະ ຈະກັບມາປະຈຳການຕາມກຳນົດ. ຖ້າກັບຊ້າ ຫຼື ບໍ່ຍື່ນໃບລາຕາມລະບຽບ ຍິນດີໃຫ້ນັບເປັນ "ຂາດ".</span></label>'+
+  '<div class="actions"><button type="submit" class="btn primary" id="f-submit">ສົ່ງໃບລາໃຫ້ຫົວໜ້າອະນຸມັດ</button><p class="form-msg" id="f-msg" role="status"></p></div>'+
+  '</form>';
+}
+function dyn(){
+  const f=$('#lf');if(!f)return;
+  const t=TYPES[draft.type];
+  const show={range:t.kind==='range',time:t.kind==='time',reasonOther:draft.reason==='ອື່ນໆ',order:draft.type==='ໜທ'||draft.reason==='ວຽກ ປກສ',retro:draft.filing==='retro',pks:!!t.pks,emerg:draft.type!=='ອຊ'};
+  f.querySelectorAll('[data-show]').forEach(el=>{el.hidden=!show[el.dataset.show];});
+  $('#l-start').textContent=t.kind==='range'?'ແຕ່ວັນທີ':'ວັນທີ';
+  const r=draftRec();
+  $('#f-period').innerHTML='<b>'+esc(period(r))+'</b> · '+qtyText(r);
+  $('#f-checks').innerHTML=checksHTML(checks(r));
+}
+function officerMine(){
+  const now=new Date();
+  const mine=state.records.filter(r=>r.officerId===state.me).sort((a,b)=>b.startDate.localeCompare(a.startDate));
+  const ph=mine.filter(r=>r.status==='phone');
+  const out=mine.filter(r=>r.status==='approved'&&now>=span(r)[0]);
+  return hotline()+
+  out.map(r=>{const er=expRet(r),over=now>er;return '<div class="card alert go"><div><b>'+(over?'ເກີນກຳນົດກັບແລ້ວ':'ກຳລັງລາຢູ່')+'</b> · <span class="no">'+r.no+'</span><p>'+r.type+' '+TYPES[r.type].label+' · '+esc(period(r))+' · ກຳນົດກັບ '+fDate(er)+'</p><p class="muted">ເມື່ອກັບຮອດຫ້ອງການ ກົດ "ກັບຄືນ" ລະບົບຈະບັນທຶກເວລາ ແລະ ແຈ້ງຫົວໜ້າໜ່ວຍບໍລິການ</p></div><div class="actions"><button class="btn primary" type="button" data-act="self-return" data-id="'+r.id+'">ກັບຄືນ</button><button class="btn ghost" type="button" data-act="detail" data-id="'+r.id+'">ເປີດໃບລາ</button></div></div>';}).join('')+
+  ph.map(r=>'<div class="card alert"><div><b>ທ່ານໄດ້ແຈ້ງລາທາງໂທລະສັບ</b><p>'+r.type+' '+TYPES[r.type].label+' · '+esc(period(r))+' · ໂທແຈ້ງ '+esc(r.callTo)+' ເວລາ '+esc(r.callTime)+'</p><p>'+dueText(r)+(r.returnedAt?' · ກັບມາແລ້ວ '+fDT(r.returnedAt):'')+'</p></div><div class="actions">'+(canSelfReturn(r)?'<button class="btn primary" type="button" data-act="self-return" data-id="'+r.id+'">ກັບຄືນ</button>':'')+'<button class="btn '+(canSelfReturn(r)?'ghost':'primary')+'" type="button" data-act="write-retro" data-id="'+r.id+'">ຂຽນໃບລາຍ້ອນຫຼັງ</button></div></div>').join('')+
+  '<section class="card"><div class="card-head"><h2>ໃບລາຂອງຂ້ອຍ</h2><p class="muted">'+mine.length+' ລາຍການ · ກົດເພື່ອເບິ່ງໃບລາ ຫຼື ສົ່ງອອກເປັນຮູບພາບ</p></div>'+
+  (mine.length?'<ul class="list">'+mine.map(r=>itemRow(r,false)).join('')+'</ul>':empty('ຍັງບໍ່ມີໃບລາ'))+'</section>';
+}
+
+/* ---------- head views ---------- */
+function loginView(){
+  return '<section class="card login"><div class="card-head"><h2>ເຂົ້າສູ່ລະບົບ ຫົວໜ້າໜ່ວຍບໍລິການ</h2><p class="muted">ພິມລະຫັດ admin ເພື່ອກວດ ແລະ ອະນຸມັດໃບລາ</p></div>'+
+  '<form id="login" class="form" novalidate><div class="field"><label for="lg-pass">ລະຫັດ admin</label><input id="lg-pass" type="password" autocomplete="current-password"></div>'+
+  '<p class="form-msg" id="lg-msg" role="status"></p><div class="actions"><button class="btn primary" type="submit">ເຂົ້າສູ່ລະບົບ</button></div>'+
+  (state.settings.adminPass==='1234'?'<p class="how">ຕົວຢ່າງນີ້ໃຊ້ລະຫັດ <b>1234</b>. ປ່ຽນໄດ້ໃນແຖບ ເຈົ້າໜ້າທີ່ ແລະ ຕັ້ງຄ່າ.</p>':'')+'</form></section>';
+}
+function approveCard(r){
+  const o=off(r.officerId),cs=checks(r),u=pendUI[r.id]||{};
+  return '<article class="card ap" id="ap-'+r.id+'">'+
+  '<header class="ap-head"><div><span class="no">'+r.no+'</span> '+(r.filing==='retro'?'<span class="pill warn">ຍື່ນຍ້ອນຫຼັງ</span>':'')+'<h3>'+esc(full(o))+'</h3><p class="ap-type"><b>'+r.type+'</b> '+TYPES[r.type].label+' · '+esc(period(r))+' · '+qtyText(r)+'</p></div><button class="btn ghost sm" type="button" data-act="detail" data-id="'+r.id+'">ເບິ່ງໃບລາ</button></header>'+
+  '<dl class="kv"><div><dt>ເຫດຜົນ</dt><dd>'+esc(reasonText(r))+(r.orderNo?' · ຄຳສັ່ງ '+esc(r.orderNo):'')+(r.detail?'<br><span class="muted">'+esc(r.detail)+'</span>':'')+'</dd></div><div><dt>ສະຖານທີ່</dt><dd>'+esc(r.destination)+'</dd></div><div><dt>ເບີຕິດຕໍ່</dt><dd>'+esc(r.phone)+'</dd></div><div><dt>ຕິດຕໍ່ສຸກເສີນ</dt><dd>'+(r.emergencyPhone?esc(r.emergencyName)+' · '+esc(r.emergencyPhone):'—')+'</dd></div><div><dt>ຍື່ນເມື່ອ</dt><dd>'+fDT(r.submittedAt)+'</dd></div></dl>'+
+  '<ul class="checks">'+checksHTML(cs)+'</ul>'+
+  '<div class="field"><label for="cm-'+r.id+'">ຄຳເຫັນຂອງຫົວໜ້າ (ແກ້ໄຂໄດ້)</label><textarea id="cm-'+r.id+'" rows="4">'+esc(u.comment!=null?u.comment:approveText(r))+'</textarea></div>'+
+  '<div class="field"><label for="by-'+r.id+'">ຜູ້ອະນຸມັດ</label><input id="by-'+r.id+'" value="'+esc(u.by!=null?u.by:HEAD)+'"></div>'+
+  '<p class="form-msg" id="am-'+r.id+'" role="status"></p>'+
+  '<div class="actions"><button class="btn primary" type="button" data-act="approve" data-id="'+r.id+'">ອະນຸມັດ</button><button class="btn danger" type="button" data-act="reject" data-id="'+r.id+'">ບໍ່ອະນຸມັດ</button></div></article>';
+}
+function headApprove(){
+  const p=state.records.filter(r=>r.status==='pending').sort((a,b)=>a.startDate.localeCompare(b.startDate));
+  const ua=unacked().length;
+  return (ua?'<div class="note" style="background:var(--accent-soft)">ມີ '+ua+' ການແຈ້ງກັບມາປະຈຳການ ລໍຖ້າຮັບຊາບ · <button class="link" type="button" data-act="tab" data-id="track">ໄປທີ່ແຖບ ຕິດຕາມ</button></div>':'')+'<p class="how">ກວດຕາມລະບຽບໃຫ້ແລ້ວ: <b>✓</b> ຖືກຕ້ອງ, <b>!</b> ຄວນພິຈາລະນາ, <b>✕</b> ບໍ່ຖືກລະບຽບ. ຫຼັງອະນຸມັດ ຫຼື ບໍ່ອະນຸມັດ ສົ່ງອອກໃບລາເປັນຮູບພາບ ເພື່ອແຈ້ງໃນກຸ່ມໄດ້.</p>'+
+  (p.length?p.map(approveCard).join(''):'<div class="card">'+empty('ບໍ່ມີໃບລາລໍຖ້າອະນຸມັດ')+'</div>');
+}
+function phoneForm(){
+  if(!ui.phoneOpen)return '';
+  const n=nowL().slice(11);
+  return '<div class="subform" id="pf">'+
+  '<div class="row"><div class="field"><label for="pf-o">ຕຳຫຼວດ</label><select id="pf-o">'+actives().map(o=>'<option value="'+o.id+'">'+esc(full(o))+'</option>').join('')+'</select></div>'+
+  '<div class="field"><label for="pf-t">ປະເພດ</label><select id="pf-t">'+['ອຊ','ລ1','ລ2','ລ3'].map(k=>'<option value="'+k+'"'+(k==='ລ1'?' selected':'')+'>'+k+' '+TYPES[k].label+'</option>').join('')+'</select></div>'+
+  '<div class="field"><label for="pf-d">ວັນທີ</label><input type="date" id="pf-d" value="'+today()+'"></div></div>'+
+  '<div class="row pf-time" hidden><div class="field"><label for="pf-tf">ເວລາອອກ</label><input type="time" id="pf-tf" value="'+n+'"></div><div class="field"><label for="pf-tt">ເວລາກັບ (ຄາດວ່າ)</label><input type="time" id="pf-tt"></div></div>'+
+  '<div class="row"><div class="field"><label for="pf-ct">ເວລາໂທແຈ້ງ</label><input type="time" id="pf-ct" value="'+n+'"></div><div class="field"><label for="pf-by">ຜູ້ຮັບແຈ້ງ</label><input id="pf-by" value="ຫົວໜ້າໜ່ວຍບໍລິການ"></div></div>'+
+  '<div class="field"><label for="pf-note">ເຫດຜົນໂດຍຫຍໍ້</label><input id="pf-note" placeholder="ເຊັ່ນ ລົດເພ້ກາງທາງ"></div>'+
+  '<p class="form-msg" id="pf-msg" role="status"></p>'+
+  '<div class="actions"><button class="btn primary" type="button" data-act="phone-save">ບັນທຶກການແຈ້ງ</button><button class="btn ghost" type="button" data-act="phone-cancel">ຍົກເລີກ</button></div></div>';
+}
+function phoneRow(r){
+  const over=new Date()>new Date(r.phoneLog.deadline);
+  return '<li class="trk"><div class="trk-top"><span class="trk-title"><b>'+esc(full(off(r.officerId)))+'</b> · '+r.type+' '+TYPES[r.type].label+'</span>'+pill(r)+'</div>'+
+  '<span class="trk-sub">'+esc(period(r))+' · ໂທແຈ້ງ '+esc(r.phoneLog.by)+' ເວລາ '+esc(r.callTime)+(r.detail?' · '+esc(r.detail):'')+'</span>'+(r.returnedAt?'<span class="trk-sub">ກັບມາແລ້ວ <b>'+fDT(r.returnedAt)+'</b></span>':'')+dueText(r)+
+  '<div class="actions">'+(over?'<button class="btn danger sm" type="button" data-act="absent" data-id="'+r.id+'">ໝາຍເປັນ "ຂາດ"</button>':'')+'<button class="btn ghost sm" type="button" data-act="detail" data-id="'+r.id+'">ເບິ່ງລາຍລະອຽດ</button></div></li>';
+}
+function trackRow(r){
+  const now=new Date(),s=span(r)[0],er=expRet(r);
+  const st=now<s?['ຈະລາ','accent']:(now<=er?['ກຳລັງລາ','warn']:['ເກີນກຳນົດກັບ','bad']);
+  return '<li class="trk"><div class="trk-top"><span class="trk-title"><span class="no">'+r.no+'</span> <b>'+esc(full(off(r.officerId)))+'</b> · '+r.type+' '+TYPES[r.type].label+'</span><span class="pill '+st[1]+'">'+st[0]+'</span></div>'+
+  '<span class="trk-sub">'+esc(period(r))+' · ກຳນົດກັບ '+fDate(er)+' · ໂທ '+esc(r.phone)+'</span>'+
+  (now>=s?'<div class="ret"><label class="sub-label" for="ret-'+r.id+'" style="margin:0">ກັບມາເວລາ</label><input type="datetime-local" id="ret-'+r.id+'" value="'+nowL()+'"><button class="btn primary sm" type="button" data-act="ret-save" data-id="'+r.id+'">ບັນທຶກກັບຄືນ</button></div>':'')+
+  '</li>';
+}
+function ackSection(){
+  const l=unacked().sort((a,b)=>b.returnedAt.localeCompare(a.returnedAt));
+  if(!l.length)return '';
+  return '<section class="card" style="border-color:var(--accent)"><div class="card-head"><h2>ແຈ້ງກັບມາປະຈຳການ ('+l.length+')</h2><p class="muted">ຕຳຫຼວດກົດ "ກັບຄືນ" ດ້ວຍຕົນເອງ · ກົດ ຮັບຊາບ ເມື່ອກວດແລ້ວ</p></div><ul class="list">'+
+  l.map(r=>'<li class="trk"><div class="trk-top"><span class="trk-title"><span class="no">'+(r.no||'ແຈ້ງທາງໂທ')+'</span> <b>'+esc(full(off(r.officerId)))+'</b> · '+r.type+' '+TYPES[r.type].label+'</span><span class="pill '+(r.late>0.01?'bad':'good')+'">'+(r.late>0.01?'ກັບຊ້າ '+fmtH(r.late):'ກັບຕາມກຳນົດ')+'</span></div>'+
+    '<span class="trk-sub">ກັບມາ <b>'+fDT(r.returnedAt)+'</b> · ກຳນົດກັບ '+fDate(expRet(r))+' · '+esc(period(r))+'</span>'+
+    '<div class="actions"><button class="btn primary sm" type="button" data-act="ack" data-id="'+r.id+'">ຮັບຊາບ</button><button class="btn ghost sm" type="button" data-act="detail" data-id="'+r.id+'">ເບິ່ງໃບລາ</button></div></li>').join('')+'</ul></section>';
+}
+function headTrack(){
+  const ph=state.records.filter(r=>r.status==='phone');
+  const ap=state.records.filter(r=>r.status==='approved').sort((a,b)=>span(a)[0]-span(b)[0]);
+  return ackSection()+'<section class="card"><div class="card-head row-between"><div><h2>ແຈ້ງລາທາງໂທລະສັບ</h2><p class="muted">ສຸກເສີນ: ບັນທຶກທັນທີ ແລ້ວລໍຖ້າໃບລາຍ້ອນຫຼັງພາຍໃນ 1 ວັນ</p></div><button class="btn ghost sm" type="button" data-act="phone-open">'+(ui.phoneOpen?'ປິດແບບຟອມ':'+ ບັນທຶກການແຈ້ງ')+'</button></div>'+
+  phoneForm()+(ph.length?'<ul class="list">'+ph.map(phoneRow).join('')+'</ul>':empty('ບໍ່ມີການແຈ້ງທາງໂທທີ່ຄ້າງຢູ່'))+'</section>'+
+  '<section class="card"><div class="card-head"><h2>ຕິດຕາມການລາ ແລະ ກັບຄືນ</h2><p class="muted">ຕຳຫຼວດກົດ "ກັບມາປະຈຳການແລ້ວ" ເອງໄດ້ ຫຼື ຫົວໜ້າບັນທຶກແທນຢູ່ນີ້</p></div>'+
+  (ap.length?'<ul class="list">'+ap.map(trackRow).join('')+'</ul>':empty('ບໍ່ມີໃບລາທີ່ອະນຸມັດຄ້າງຢູ່'))+'</section>';
+}
+function registerData(ym){
+  const inM=state.records.filter(r=>daysIn(r,ym)>0).sort((a,b)=>a.startDate.localeCompare(b.startDate));
+  const ids=Array.from(new Set(actives().map(o=>o.id).concat(inM.map(r=>r.officerId))));
+  const sum=ids.map(id=>{
+    const c={os:0,half:0,full:0,duty:0,abs:0};
+    inM.filter(r=>r.officerId===id&&['approved','returned','absent'].indexOf(r.status)>=0).forEach(r=>{
+      const d=daysIn(r,ym);
+      if(r.status==='absent'){c.abs+=TYPES[r.type].kind==='range'?d:1;return;}
+      if(r.type==='ອຊ')c.os++;else if(r.type==='ລ1'||r.type==='ລ2')c.half++;else if(r.type==='ໜທ')c.duty+=d;else c.full+=d;
+    });
+    c.no=c.full+c.duty+c.abs;c.amt=c.no*RATE;return {o:off(id),c:c};
+  });
+  return {inM:inM,sum:sum};
+}
+function summaryTable(sum){
+  return '<div class="table-wrap"><table><thead><tr><th>ຊື່ຕຳຫຼວດ</th><th class="num">ອຊ (ຄັ້ງ)</th><th class="num">ລ1/ລ2 (ຄັ້ງ)</th><th class="num">ລ3/ລ4 (ມື້)</th><th class="num">ໜທ (ມື້)</th><th class="num">ຂາດ (ມື້)</th><th class="num">ມື້ບໍ່ໄດ້ອັດຕາກິນ</th><th class="num">ອັດຕາກິນທີ່ບໍ່ໄດ້ຮັບ</th></tr></thead><tbody>'+
+  sum.map(x=>'<tr><td>'+esc(full(x.o))+'</td><td class="num">'+x.c.os+'</td><td class="num">'+x.c.half+'</td><td class="num">'+x.c.full+'</td><td class="num">'+x.c.duty+'</td><td class="num">'+x.c.abs+'</td><td class="num"><b>'+x.c.no+'</b></td><td class="num">'+money(x.c.amt)+'</td></tr>').join('')+
+  '</tbody></table></div>';
+}
+function recordsTable(list,click){
+  return '<div class="table-wrap"><table><thead><tr><th>ເລກທີ</th><th>ວັນທີ</th><th>ຜູ້ລາ</th><th>ປະເພດ</th><th>ຈຳນວນ</th><th>ເຫດຜົນ</th><th>ສະຖານະ</th><th>ກັບຄືນ</th></tr></thead><tbody>'+
+  list.map(r=>'<tr'+(click?' class="click" data-act="detail" data-id="'+r.id+'" tabindex="0"':'')+'><td class="no">'+(r.no||'—')+'</td><td>'+fD(r.startDate)+((r.endDate&&r.endDate!==r.startDate)?'–'+fD(r.endDate):'')+'</td><td>'+esc(full(off(r.officerId)))+'</td><td><b>'+r.type+'</b> '+TYPES[r.type].label+'</td><td>'+qtyText(r)+'</td><td>'+esc(reasonText(r))+'</td><td>'+pill(r)+'</td><td>'+(r.returnedAt?fDT(r.returnedAt):'—')+'</td></tr>').join('')+
+  '</tbody></table></div>';
+}
+const RULE_NOTE='ອັດຕາກິນ 50,000 ກີບ/ມື້. ອອກຊົ່ວຄາວ ແລະ ລາເຄິ່ງມື້ ບໍ່ຫັກ. ລ3, ລ4, ໜທ ແລະ ຂາດ ບໍ່ໄດ້ອັດຕາກິນ. ນັບສະເພາະໃບລາທີ່ອະນຸມັດ ແລະ ລາຍການ "ຂາດ".';
+function headRegister(){
+  const months=Array.from(new Set(state.records.map(r=>r.startDate.slice(0,7)).concat([today().slice(0,7)]))).sort().reverse();
+  if(!ui.month||months.indexOf(ui.month)<0)ui.month=today().slice(0,7);
+  const ym=ui.month,d=registerData(ym);
+  return '<section class="card"><div class="reg-head"><h2>ທະບຽນການລາ ປະຈຳເດືອນ</h2>'+
+  '<div class="actions"><label class="me" for="reg-month"><span>ເດືອນ</span><select id="reg-month">'+months.map(m=>'<option value="'+m+'"'+(m===ym?' selected':'')+'>'+monthLabel(m)+'</option>').join('')+'</select></label>'+
+  '<button class="btn primary sm" type="button" data-act="export-reg">ສົ່ງອອກເປັນຮູບພາບ</button></div></div>'+
+  '<h3 class="sec" style="margin-top:4px">ສັງລວມທ້າຍເດືອນ</h3>'+summaryTable(d.sum)+'<p class="foot">'+RULE_NOTE+'</p>'+
+  '<h3 class="sec">ລາຍການໃບລາ ('+d.inM.length+')</h3>'+(d.inM.length?recordsTable(d.inM,true):empty('ບໍ່ມີໃບລາໃນເດືອນນີ້'))+
+  '</section>';
+}
+function headStaff(){
+  const act=actives(),s=state.settings;
+  return '<section class="card"><div class="card-head"><h2>ລາຍຊື່ເຈົ້າໜ້າທີ່ຕຳຫຼວດ</h2><p class="muted">'+act.length+' ທ່ານ · ລົບອອກຈາກລາຍຊື່ແລ້ວ ປະຫວັດການລາຍັງເກັບໄວ້</p></div>'+
+  '<ul class="list">'+act.map(o=>'<li class="staff"><div><b>'+esc(full(o))+'</b><span class="r-sub">'+esc(o.phone||'—')+'</span></div>'+
+    (ui.confirmDel===o.id?'<div class="actions"><span class="form-msg bad">ລົບ '+esc(full(o))+' ອອກຈາກລາຍຊື່?</span><button class="btn danger sm" type="button" data-act="staff-del" data-id="'+o.id+'">ຢືນຢັນລົບ</button><button class="btn ghost sm" type="button" data-act="staff-del-cancel">ຍົກເລີກ</button></div>'
+    :'<button class="btn ghost sm" type="button" data-act="staff-del-ask" data-id="'+o.id+'">ລົບອອກ</button>')+'</li>').join('')+'</ul>'+
+  '<div class="subform" style="margin:14px 0 0"><b>ເພີ່ມເຈົ້າໜ້າທີ່ໃໝ່</b><div class="row">'+
+    '<div class="field"><label for="st-rank">ຍົດ</label><input id="st-rank" placeholder="ເຊັ່ນ ສທ, ພັຕ"></div>'+
+    '<div class="field"><label for="st-name">ຊື່ ແລະ ນາມສະກຸນ</label><input id="st-name"></div>'+
+    '<div class="field"><label for="st-phone">ເບີໂທ</label><input id="st-phone" inputmode="tel"></div></div>'+
+    '<p class="form-msg" id="st-msg" role="status"></p><div class="actions"><button class="btn primary" type="button" data-act="staff-add">ເພີ່ມເຂົ້າລາຍຊື່</button></div></div></section>'+
+  '<section class="card"><div class="card-head"><h2>ຕັ້ງຄ່າ</h2><p class="muted">ເບີໂທນີ້ຈະສະແດງໃຫ້ຕຳຫຼວດເຫັນ ເພື່ອໂທແຈ້ງລາສຸກເສີນ</p></div><div class="row">'+
+    '<div class="field"><label for="set-phone">ເບີໂທແຈ້ງລາສຸກເສີນ (ຫົວໜ້າໜ່ວຍ)</label><input id="set-phone" inputmode="tel" value="'+esc(s.unitPhone)+'" placeholder="020 …"></div>'+
+    '<div class="field"><label for="set-pass">ລະຫັດ admin ໃໝ່ (ປ່ອຍຫວ່າງ = ບໍ່ປ່ຽນ)</label><input id="set-pass" type="password" autocomplete="new-password" placeholder="ຢ່າງໜ້ອຍ 4 ຕົວ"></div></div>'+
+    '<p class="form-msg" id="set-msg" role="status"></p><div class="actions"><button class="btn primary" type="button" data-act="settings-save">ບັນທຶກການຕັ້ງຄ່າ</button></div></section>';
+}
+function view(k){
+  if(state.role==='officer')return k==='mine'?officerMine():officerNew();
+  if(!ui.headAuthed)return loginView();
+  if(k==='track')return headTrack();
+  if(k==='register')return headRegister();
+  if(k==='staff')return headStaff();
+  return headApprove();
+}
+function render(){
+  ensureMe();
+  const recs=state.records,now=new Date();
+  const pend=recs.filter(r=>r.status==='pending').length;
+  const trackN=recs.filter(r=>r.status==='phone').length+recs.filter(r=>r.status==='approved'&&span(r)[0]<=now).length+unacked().length;
+  const myN=recs.filter(r=>r.officerId===state.me&&(r.status==='phone'||(r.status==='approved'&&span(r)[0]<=now))).length;
+  const head=state.role==='head';
+  const tabs=!head?[['new','ຂຽນໃບລາ',0],['mine','ໃບລາຂອງຂ້ອຍ',myN]]:[['approve','ອະນຸມັດ',pend],['track','ຕິດຕາມ',trackN],['register','ທະບຽນ ແລະ ສັງລວມ',0],['staff','ເຈົ້າໜ້າທີ່ ແລະ ຕັ້ງຄ່າ',0]];
+  const cur=state.tab[state.role];
+  $('#app').innerHTML='<div class="rolebar"><div class="seg" role="group" aria-label="ບົດບາດ"><button type="button" data-act="role" data-id="officer" aria-pressed="'+(!head)+'">ຕຳຫຼວດ</button><button type="button" data-act="role" data-id="head" aria-pressed="'+head+'">ຫົວໜ້າໜ່ວຍບໍລິການ</button></div>'+
+    (!head?'<label class="me" for="me-sel"><span>ເຂົ້າໃຊ້ເປັນ</span><select id="me-sel">'+actives().map(o=>'<option value="'+o.id+'"'+(o.id===state.me?' selected':'')+'>'+esc(full(o))+'</option>').join('')+'</select></label>'
+      :(ui.headAuthed?'<p class="me"><span>ເຂົ້າລະບົບແລ້ວ</span><button class="link" type="button" data-act="logout">ອອກຈາກລະບົບ</button></p>':''))+'</div>'+
+    (head&&!ui.headAuthed?'':'<nav class="tabs" role="tablist">'+tabs.map(t=>'<button type="button" role="tab" aria-selected="'+(t[0]===cur)+'" data-act="tab" data-id="'+t[0]+'">'+t[1]+(t[2]?'<span class="badge">'+t[2]+'</span>':'')+'</button>').join('')+'</nav>')+
+    '<div class="view">'+view(cur)+'</div>'+
+    '<p class="footnote">ສະບັບຈິງ: ເກັບຂໍ້ມູນໃນ Google Sheet ດຽວກັບລະບົບບັນທຶກປະຈຳການ, ກວດລະຫັດ admin ຢູ່ຝັ່ງເຊີບເວີ, ແລະ ສົ່ງສະຖານະການລາເຂົ້າແຜ່ນ "ລາຍງານ" ເພື່ອຄິດອັດຕາກິນອັດຕະໂນມັດ.</p>';
+  if(!head&&cur==='new')dyn();
+  if(head&&!ui.headAuthed){const p=$('#lg-pass');if(p)p.focus();}
+}
+
+/* ---------- paper form ---------- */
+function paperHTML(r,interactive){
+  const o=off(r.officerId),dec=r.decision;
+  let stamp='';
+  if(dec)stamp=dec.result==='approved'?'<div class="stamp ok">ອະນຸມັດ</div>':(dec.result==='rejected'?'<div class="stamp no">ບໍ່ອະນຸມັດ</div>':'<div class="stamp no">ຂາດ</div>');
+  const row=(k,v)=>'<dt>'+k+'</dt><dd>'+v+'</dd>';
+  const attach=[r.attachMed?'ໃບຢັ້ງຢືນແພດ':'',r.attachOrder?'ຄຳສັ່ງ ປກສ':''].filter(Boolean).join(', ')||'ບໍ່ມີ';
+  let decHTML;
+  if(dec)decHTML='<div class="decision">'+stamp+'<p class="muted" style="font-size:13px">ຄຳເຫັນຂອງຫົວໜ້າໜ່ວຍບໍລິການ</p><p>'+esc(dec.comment)+'</p><p class="muted" style="font-size:13px">'+esc(dec.by)+' · '+fDT(dec.at)+'</p></div>';
+  else if(r.status==='phone')decHTML='<div class="decision"><p>ແຈ້ງທາງໂທລະສັບ ເວລາ '+esc(r.callTime)+' ຫາ '+esc(r.phoneLog.by)+'. ລໍຖ້າໃບລາຍ້ອນຫຼັງ.</p><p>'+dueText(r)+'</p></div>';
+  else decHTML='<div class="decision"><p class="muted">ລໍຖ້າຫົວໜ້າໜ່ວຍບໍລິການອະນຸມັດ</p></div>';
+  const by=r.returnBy==='self'?'ຕົນເອງ (ກົດໃນລະບົບ)':(r.returnBy==='head'?'ຫົວໜ້າໜ່ວຍບໍລິການ':'—');
+  const selfret=interactive&&canSelfReturn(r)?'<div class="selfret"><p>ກຳນົດກັບ: <b>'+fDate(expRet(r))+'</b>. ເມື່ອກັບຮອດຫ້ອງການແລ້ວ ກົດ "ກັບຄືນ" ລະບົບຈະບັນທຶກເວລາປັດຈຸບັນເປັນເວລາກັບ ແລະ ແຈ້ງຫົວໜ້າໜ່ວຍບໍລິການ.</p><div><button class="btn primary" type="button" data-act="self-return" data-id="'+r.id+'">ກັບຄືນ</button></div></div>':'';
+  return '<div class="paper">'+
+    '<p class="motto"><b>ສາທາລະນະລັດ ປະຊາທິປະໄຕ ປະຊາຊົນລາວ</b><br>ສັນຕິພາບ ເອກະລາດ ປະຊາທິປະໄຕ ເອກະພາບ ວັດທະນະຖາວອນ</p>'+
+    '<div class="paper-meta"><span>ທະນາຄານພັດທະນາລາວ<br>ໜ່ວຍບໍລິການ ເມືອງຄອບ</span><span>ເລກທີ: <b class="no" style="color:var(--fg)">'+(r.no||'……/ລພ.ໜບຄ')+'</b><br>ວັນທີຍື່ນ: '+(r.submittedAt?fDT(r.submittedAt):'—')+'</span></div>'+
+    '<h3 class="paper-title">ໃບຂໍລາພັກ ຕຳຫຼວດປະຈຳການ</h3><p class="to">ຮຽນ: ຫົວໜ້າໜ່ວຍບໍລິການ ເມືອງຄອບ</p>'+
+    '<p class="sect">ກ. ຜູ້ຂໍລາພັກ</p><dl class="pkv">'+row('ຍົດ, ຊື່ ແລະ ນາມສະກຸນ',esc(full(o)))+row('ເບີໂທ',esc(o.phone||'—'))+row('ໜ່ວຍງານຕົ້ນສັງກັດ','ປກສ ເມືອງຄອບ')+'</dl>'+
+    '<p class="sect">ຂ. ລາຍລະອຽດການລາ</p><dl class="pkv">'+row('ປະເພດ','<b>'+r.type+'</b> '+TYPES[r.type].label)+row('ໄລຍະເວລາ',esc(period(r))+' · '+qtyText(r))+row('ເຫດຜົນ',esc(reasonText(r))+(r.orderNo?' · ຄຳສັ່ງເລກທີ '+esc(r.orderNo):''))+row('ລາຍລະອຽດ',esc(r.detail||'—'))+row('ສະຖານທີ່ທີ່ຈະໄປ',esc(r.destination||'—'))+row('ເບີຕິດຕໍ່ໃນເວລາລາ',esc(r.phone||'—'))+row('ຕິດຕໍ່ສຸກເສີນ',r.emergencyPhone?esc(r.emergencyName)+' · '+esc(r.emergencyPhone):'—')+row('ເອກະສານຕິດຄັດ',attach)+row('ການຍື່ນ',r.filing==='retro'?'ຍ້ອນຫຼັງ (ສຸກເສີນ) · ໂທແຈ້ງ '+esc(r.callTo)+' ເວລາ '+esc(r.callTime):'ລ່ວງໜ້າ')+'</dl>'+
+    '<p class="sect">ຄ. ການມອບໜ້າທີ່</p><dl class="pkv">'+row('ຜູ້ຮັບມອບ / ຜູ້ແທນ',esc(coverName(r)))+(TYPES[r.type].pks?row('ແຈ້ງ ປກສ',r.pksNotified?'ແຈ້ງແລ້ວ'+(r.pksContact?' · '+esc(r.pksContact):''):'ຍັງບໍ່ແຈ້ງ'):'')+'</dl>'+
+    '<p class="sect">ງ. ການອະນຸມັດ</p>'+decHTML+
+    '<p class="sect">ຈ. ລາຍງານກັບຄືນ</p><dl class="pkv">'+row('ກັບມາປະຈຳການ',r.returnedAt?fDT(r.returnedAt):'—')+row('ກັບຊ້າກວ່າກຳນົດ',r.returnedAt?(r.late>0.01?'ແມ່ນ · '+fmtH(r.late):'ບໍ່'):'—')+row('ບັນທຶກໂດຍ',by)+(r.returnBy==='self'?row('ຫົວໜ້າຮັບຊາບ',r.returnAck===false?'ລໍຖ້າຮັບຊາບ':'ຮັບຊາບແລ້ວ'+(r.returnAckAt?' · '+fDT(r.returnAckAt):'')):'')+'</dl>'+selfret+
+    '</div>';
+}
+function openDetail(id,note){
+  const r=get(id);if(!r)return;
+  $('#modal-body').innerHTML='<div class="mtool">'+(note?'<span class="mnote">'+esc(note)+'</span>':'<span class="no">'+(r.no||'ແຈ້ງທາງໂທ')+'</span>')+
+    '<button class="btn primary sm" type="button" data-act="export-leave" data-id="'+r.id+'">ສົ່ງອອກເປັນຮູບພາບ</button></div>'+paperHTML(r,true);
+  const m=$('#modal');m.hidden=false;m.scrollTop=0;$('#modal .close').focus();
+}
+function closeModal(){$('#modal').hidden=true;}
+
+/* ---------- export to image ---------- */
+let X=null;
+async function exportImage(inner,filename,width,btn){
+  if(!window.html2canvas){toast('ໂຫຼດເຄື່ອງມືສ້າງຮູບບໍ່ໄດ້ ກວດອິນເຕີເນັດແລ້ວລອງໃໝ່');return;}
+  if(btn){btn.disabled=true;}
+  toast('ກຳລັງສ້າງຮູບ…');
+  const host=document.createElement('div');
+  host.className='exp';host.id='exp-host';host.style.width=width+'px';
+  host.innerHTML=inner+'<p class="exp-foot" style="padding:0 34px 18px">ສົ່ງອອກຈາກ ລະບົບຂໍລາ ຕຳຫຼວດປະຈຳການ · '+fDT(nowL())+'</p>';
+  document.body.appendChild(host);
+  try{
+    if(document.fonts&&document.fonts.ready)await document.fonts.ready;
+    const canvas=await window.html2canvas(host,{scale:2,backgroundColor:'#ffffff',logging:false,windowWidth:width+40,
+      onclone:doc=>{const h=doc.getElementById('exp-host');if(h){h.style.left='0px';}}});
+    const url=canvas.toDataURL('image/png');
+    const blob=await new Promise(res=>canvas.toBlob(res,'image/png'));
+    showExport(url,blob,filename);
+  }catch(e){toast('ສ້າງຮູບບໍ່ສຳເລັດ ລອງໃໝ່ອີກຄັ້ງ');}
+  finally{host.remove();if(btn)btn.disabled=false;}
+}
+function showExport(url,blob,filename){
+  X={blob:blob,filename:filename};
+  $('#xbody').innerHTML='<div class="xbox"><div style="padding-right:44px"><b>ຮູບພາບພ້ອມແລ້ວ</b><p class="how">ບັນທຶກ ຫຼື ສຳເນົາ ແລ້ວສົ່ງໃນກຸ່ມແຊັດ ເພື່ອແຈ້ງໃຫ້ຮັບຊາບ.</p></div>'+
+    '<div class="actions">'+'<button class="btn primary" type="button" data-act="x-save">ບັນທຶກຮູບ</button>'+'<button class="btn ghost" type="button" data-act="x-copy">ສຳເນົາຮູບ</button></div>'+
+    '<p class="how">ຖ້າປຸ່ມໃຊ້ບໍ່ໄດ້ໃນເຄື່ອງນີ້: ກົດຄ້າງທີ່ຮູບ (ໂທລະສັບ) ຫຼື ຄລິກຂວາ (ຄອມ) ແລ້ວເລືອກ ບັນທຶກຮູບ / ສຳເນົາຮູບ.</p>'+
+    '<img class="ximg" src="'+url+'" alt="'+esc(filename)+'"></div>';
+  const m=$('#xmodal');m.hidden=false;m.scrollTop=0;$('#xmodal .close').focus();
+  toast('ສ້າງຮູບແລ້ວ');
+}
+function leaveFile(r){return 'ໃບລາ-'+(r.no?r.no.split('/')[0]:'ແຈ້ງທາງໂທ')+'-'+r.startDate+'.png';}
+function regExportHTML(ym){
+  const d=registerData(ym);
+  return '<div class="exp-pad"><p class="exp-org">ທະນາຄານພັດທະນາລາວ · ໜ່ວຍບໍລິການ ເມືອງຄອບ</p><h2 class="exp-title">ທະບຽນການລາ ຕຳຫຼວດປະຈຳການ</h2><p class="exp-month">ເດືອນ'+monthLabel(ym)+'</p>'+
+    '<h3 class="sec">ສັງລວມທ້າຍເດືອນ</h3>'+summaryTable(d.sum)+'<p class="foot">'+RULE_NOTE+'</p>'+
+    '<h3 class="sec">ລາຍການໃບລາ ('+d.inM.length+')</h3>'+(d.inM.length?recordsTable(d.inM,false):empty('ບໍ່ມີໃບລາໃນເດືອນນີ້'))+
+    '<div class="exp-sign"><div>ຜູ້ສັງລວມ<br><br><br>(..............................)</div><div>ຫົວໜ້າໜ່ວຍບໍລິການ ເມືອງຄອບ<br><br><br>(..............................)</div></div></div>';
+}
+
+/* ---------- toast ---------- */
+let toastT=0;
+function toast(t){const el=$('#toast');el.textContent=t;el.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>{el.hidden=true;},2800);}
+
+/* ---------- actions ---------- */
+const H={
+  role:id=>{state.role=id;save();render();},
+  tab:id=>{state.tab[state.role]=id;ui.confirmDel=null;save();render();},
+  logout:()=>{ui.headAuthed=false;render();toast('ອອກຈາກລະບົບແລ້ວ');},
+  detail:id=>openDetail(id),
+  close:()=>closeModal(),
+  xclose:()=>{$('#xmodal').hidden=true;},
+  reset:()=>{try{localStorage.removeItem(KEY);}catch(e){}seed();draft=newDraft();ui.phoneOpen=false;ui.month=null;ui.headAuthed=false;ui.confirmDel=null;closeModal();$('#xmodal').hidden=true;save();render();toast('ໂຫຼດຂໍ້ມູນຕົວຢ່າງໃໝ່ແລ້ວ');},
+  'write-retro':id=>{const r=get(id);draft=Object.assign(newDraft(),{type:r.type,startDate:r.startDate,endDate:r.endDate||r.startDate,timeFrom:r.timeFrom||'09:00',timeTo:r.timeTo||'10:00',detail:r.detail||'',filing:'retro',callTime:r.callTime,callTo:r.callTo,linkId:r.id});state.tab.officer='new';render();window.scrollTo(0,0);},
+  'export-leave':(id,b)=>{const r=get(id);exportImage(paperHTML(r,false),leaveFile(r),720,b);},
+  'export-reg':(id,b)=>{exportImage(regExportHTML(ui.month),'ທະບຽນການລາ-'+ui.month+'.png',1180,b);},
+  'x-save':()=>{
+    if(!X)return;
+    if(!DL){const a=document.createElement('a');a.href=URL.createObjectURL(X.blob);a.download=X.filename;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1500);return;}
+    DL.save({filename:X.filename,data:X.blob}).then(()=>toast('ບັນທຶກຮູບແລ້ວ')).catch(e=>{if(e&&e.code==='declined')return;toast('ບັນທຶກບໍ່ໄດ້ໃນເຄື່ອງນີ້: ກົດຄ້າງທີ່ຮູບແທນ');});
+  },
+  'x-copy':()=>{
+    if(!X)return;
+    try{
+      if(!navigator.clipboard||!window.ClipboardItem)throw new Error('no');
+      navigator.clipboard.write([new ClipboardItem({'image/png':X.blob})]).then(()=>toast('ສຳເນົາຮູບແລ້ວ · ວາງ (Paste) ໃນກຸ່ມແຊັດໄດ້ເລີຍ'),()=>toast('ສຳເນົາບໍ່ໄດ້ໃນເຄື່ອງນີ້: ກົດຄ້າງທີ່ຮູບແທນ'));
+    }catch(e){toast('ສຳເນົາບໍ່ໄດ້ໃນເຄື່ອງນີ້: ກົດຄ້າງທີ່ຮູບແທນ');}
+  },
+  'self-return':id=>{
+    const r=get(id);if(!r||r.returnedAt||(r.status!=='approved'&&r.status!=='phone'))return;
+    r.returnedAt=nowL();r.late=Math.max(0,(new Date(r.returnedAt)-expRet(r))/36e5);r.returnBy='self';r.returnAck=false;
+    if(r.status==='approved')r.status='returned';
+    save();render();openDetail(id,'ກັບຄືນ '+fDT(r.returnedAt)+(r.late>0.01?' (ຊ້າ '+fmtH(r.late)+')':'')+' · ແຈ້ງຫົວໜ້າໜ່ວຍບໍລິການແລ້ວ');
+  },
+  approve:id=>{
+    const r=get(id),ta=$('#cm-'+id),m=$('#am-'+id),u=pendUI[id]=pendUI[id]||{};
+    u.comment=ta.value;u.by=$('#by-'+id).value;
+    const v=ta.value.trim();
+    if(v.indexOf('ບໍ່ອະນຸມັດ')===0){m.textContent='ຄຳເຫັນຂຽນວ່າ "ບໍ່ອະນຸມັດ": ແກ້ຄຳເຫັນ ຫຼື ກົດປຸ່ມ ບໍ່ອະນຸມັດ.';m.className='form-msg bad';return;}
+    const nb=checks(r).filter(c=>c.lv==='bad').length;
+    if(nb&&u.arm!=='approve'){u.arm='approve';m.textContent='ໃບລານີ້ມີ '+nb+' ຂໍ້ບໍ່ຖືກລະບຽບ (✕). ກົດ ອະນຸມັດ ອີກຄັ້ງເພື່ອຢືນຢັນ.';m.className='form-msg bad';return;}
+    r.status=r.returnedAt?'returned':'approved';r.decision={result:'approved',by:u.by.trim()||HEAD,at:nowL(),comment:v||approveText(r)};
+    delete pendUI[id];save();render();openDetail(id,'ອະນຸມັດແລ້ວ · ສົ່ງອອກເປັນຮູບເພື່ອແຈ້ງໃນກຸ່ມ');
+  },
+  reject:id=>{
+    const r=get(id),ta=$('#cm-'+id),m=$('#am-'+id),u=pendUI[id]=pendUI[id]||{};
+    const prefix='ບໍ່ອະນຸມັດ ເນື່ອງຈາກ ';
+    const v=ta.value.trim();
+    if(v.indexOf('ບໍ່ອະນຸມັດ')!==0){ta.value=prefix;u.comment=prefix;ta.focus();ta.setSelectionRange(ta.value.length,ta.value.length);m.textContent='ຂຽນເຫດຜົນທີ່ບໍ່ອະນຸມັດ ແລ້ວກົດ ບໍ່ອະນຸມັດ ອີກຄັ້ງ.';m.className='form-msg warn';return;}
+    if(v.length<prefix.trim().length+4){ta.focus();m.textContent='ກະລຸນາຂຽນເຫດຜົນໃຫ້ຊັດເຈນ.';m.className='form-msg bad';return;}
+    r.status='rejected';r.decision={result:'rejected',by:$('#by-'+id).value.trim()||HEAD,at:nowL(),comment:v};
+    delete pendUI[id];save();render();openDetail(id,'ບໍ່ອະນຸມັດແລ້ວ · ສົ່ງອອກເປັນຮູບເພື່ອແຈ້ງໃນກຸ່ມ');
+  },
+  ack:id=>{const r=get(id);if(!r)return;r.returnAck=true;r.returnAckAt=nowL();save();render();toast('ຮັບຊາບການກັບຄືນແລ້ວ');},
+  'phone-open':()=>{ui.phoneOpen=!ui.phoneOpen;render();},
+  'phone-cancel':()=>{ui.phoneOpen=false;render();},
+  'phone-save':()=>{
+    const type=$('#pf-t').value,d=$('#pf-d').value,m=$('#pf-msg');
+    const tf=$('#pf-tf').value,tt=$('#pf-tt').value,ct=$('#pf-ct').value,by=$('#pf-by').value.trim();
+    if(!d||!ct||!by){m.textContent='ກະລຸນາໃສ່ວັນທີ, ເວລາໂທ ແລະ ຜູ້ຮັບແຈ້ງ.';m.className='form-msg bad';return;}
+    if(type==='ອຊ'&&(!tf||!tt||tt<=tf)){m.textContent='ອອກຊົ່ວຄາວ: ໃສ່ເວລາອອກ ແລະ ເວລາກັບໃຫ້ຖືກຕ້ອງ.';m.className='form-msg bad';return;}
+    const oid=$('#pf-o').value,o=off(oid),h=actives().find(x=>x.id!==oid);
+    const r={id:uid(),officerId:oid,type:type,startDate:d,endDate:d,timeFrom:type==='ອຊ'?tf:'',timeTo:type==='ອຊ'?tt:'',reason:'',reasonOther:'',orderNo:'',detail:$('#pf-note').value.trim(),destination:'',phone:o.phone,emergencyName:'',emergencyPhone:'',attachMed:false,attachOrder:false,filing:'retro',callTime:ct,callTo:by,handoverTo:h?h.id:'',pksReplacement:'',pksNotified:false,pksContact:'',decision:null,returnedAt:'',returnBy:'',late:0,no:'',submittedAt:'',status:'phone',phoneLog:{at:nowL(),by:by,deadline:addDays(d,1)+'T23:59'}};
+    const clash=checks(r).find(c=>c.lv==='bad'&&c.tx.indexOf('ຫ້າມລາພ້ອມກັນ')===0);
+    state.records.push(r);ui.phoneOpen=false;save();render();
+    toast(clash?'ບັນທຶກແລ້ວ · ລະວັງ: ບໍ່ມີຄົນຢູ່ປະຈຳການ ໃຫ້ຂໍຄົນແທນຈາກ ປກສ':'ບັນທຶກການແຈ້ງທາງໂທແລ້ວ · ລໍຖ້າໃບລາຍ້ອນຫຼັງ');
+  },
+  'ret-save':id=>{
+    const r=get(id),v=$('#ret-'+id).value;
+    if(!v){toast('ກະລຸນາໃສ່ເວລາກັບ');return;}
+    r.returnedAt=v;r.late=Math.max(0,(new Date(v)-expRet(r))/36e5);r.status='returned';r.returnBy='head';
+    save();render();toast(r.late>0.01?'ບັນທຶກກັບຄືນແລ້ວ · ຊ້າ '+fmtH(r.late):'ບັນທຶກກັບຄືນແລ້ວ · ກັບຕາມກຳນົດ');
+  },
+  absent:id=>{
+    const r=get(id);r.status='absent';
+    r.decision={result:'absent',by:HEAD,at:nowL(),comment:'ບໍ່ຍື່ນໃບລາຍ້ອນຫຼັງພາຍໃນກຳນົດ 1 ວັນ: ນັບເປັນ "ຂາດ" ແລະ ບໍ່ໄດ້ອັດຕາກິນມື້ດັ່ງກ່າວ.'};
+    save();render();toast('ໝາຍເປັນ "ຂາດ" ແລ້ວ');
+  },
+  'staff-del-ask':id=>{ui.confirmDel=id;render();},
+  'staff-del-cancel':()=>{ui.confirmDel=null;render();},
+  'staff-del':id=>{
+    if(actives().length<=1){ui.confirmDel=null;render();toast('ຕ້ອງມີເຈົ້າໜ້າທີ່ຢ່າງໜ້ອຍ 1 ທ່ານ');return;}
+    const o=off(id);o.active=false;ui.confirmDel=null;ensureMe();if(draft.officerId===id||draft.handoverTo===id)draft=newDraft();
+    save();render();toast('ລົບ '+full(o)+' ອອກຈາກລາຍຊື່ແລ້ວ');
+  },
+  'staff-add':()=>{
+    const rank=$('#st-rank').value.trim(),name=$('#st-name').value.trim(),phone=$('#st-phone').value.trim(),m=$('#st-msg');
+    if(!name||!phone){m.textContent='ກະລຸນາໃສ່ຊື່ ແລະ ເບີໂທ.';m.className='form-msg bad';return;}
+    state.officers.push({id:'o'+Date.now().toString(36),rank:rank,name:name,phone:phone,active:true});
+    save();render();toast('ເພີ່ມ '+(rank?rank+' ':'')+name+' ແລ້ວ');
+  },
+  'settings-save':()=>{
+    const p=$('#set-phone').value.trim(),pw=$('#set-pass').value,m=$('#set-msg');
+    if(pw&&pw.length<4){m.textContent='ລະຫັດຕ້ອງມີຢ່າງໜ້ອຍ 4 ຕົວ.';m.className='form-msg bad';return;}
+    state.settings.unitPhone=p;if(pw)state.settings.adminPass=pw;
+    save();render();toast(pw?'ບັນທຶກແລ້ວ · ປ່ຽນລະຫັດ admin ແລ້ວ':'ບັນທຶກການຕັ້ງຄ່າແລ້ວ');
+  }
+};
+document.addEventListener('click',e=>{
+  if(e.target.id==='modal'){closeModal();return;}
+  if(e.target.id==='xmodal'){$('#xmodal').hidden=true;return;}
+  const b=e.target.closest('[data-act]');if(!b)return;
+  const f=H[b.dataset.act];if(f)f(b.dataset.id,b);
+});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){if(!$('#xmodal').hidden){$('#xmodal').hidden=true;return;}if(!$('#modal').hidden)closeModal();}
+  if(e.key==='Enter'&&e.target.matches&&e.target.matches('tr.click'))openDetail(e.target.dataset.id);
+});
+function onField(e){
+  const el=e.target;
+  if(el.id==='me-sel'){if(e.type!=='change')return;state.me=el.value;draft=newDraft();save();render();return;}
+  if(el.id==='reg-month'){if(e.type!=='change')return;ui.month=el.value;render();return;}
+  if(el.id==='pf-t'){const x=$('.pf-time');if(x)x.hidden=el.value!=='ອຊ';return;}
+  if(el.id&&el.id.indexOf('cm-')===0){const u=pendUI[el.id.slice(3)]=pendUI[el.id.slice(3)]||{};u.comment=el.value;u.arm=null;return;}
+  if(el.id&&el.id.indexOf('by-')===0){const u=pendUI[el.id.slice(3)]=pendUI[el.id.slice(3)]||{};u.by=el.value;return;}
+  if(!el.closest||!el.closest('#lf')||!el.name)return;
+  const n=el.name;
+  if(el.type==='checkbox')draft[n]=el.checked;
+  else if(el.type==='radio'){if(!el.checked)return;draft[n]=el.value;}
+  else draft[n]=el.value;
+  if(n==='type'){
+    const t=TYPES[draft.type];
+    if(draft.type==='ໜທ'){draft.reason='ວຽກ ປກສ';const rr=document.querySelector('#lf input[name="reason"][value="ວຽກ ປກສ"]');if(rr)rr.checked=true;}
+    if(t.kind==='range'&&diffDays(draft.startDate,draft.endDate)<(draft.type==='ລ4'?1:0)){draft.endDate=addDays(draft.startDate,draft.type==='ລ4'?1:0);$('#f-end').value=draft.endDate;}
+  }
+  if(n==='startDate'&&TYPES[draft.type].kind==='range'&&draft.endDate<draft.startDate){draft.endDate=draft.startDate;$('#f-end').value=draft.endDate;}
+  $('#f-msg').textContent='';
+  dyn();
+}
+document.addEventListener('input',onField);
+document.addEventListener('change',onField);
+document.addEventListener('submit',e=>{
+  if(e.target.id==='login'){
+    e.preventDefault();
+    const p=$('#lg-pass'),m=$('#lg-msg');
+    if(p.value===state.settings.adminPass){ui.headAuthed=true;state.tab.head=state.tab.head||'approve';render();toast('ເຂົ້າສູ່ລະບົບແລ້ວ');}
+    else{m.textContent='ລະຫັດບໍ່ຖືກຕ້ອງ. ລອງໃໝ່ອີກຄັ້ງ.';m.className='form-msg bad';p.select();}
+    return;
+  }
+  if(e.target.id!=='lf')return;
+  e.preventDefault();
+  const r=draftRec(),bad=checks(r).filter(c=>c.lv==='bad'),msg=$('#f-msg');
+  if(bad.length){msg.textContent='ຍັງສົ່ງບໍ່ໄດ້: ແກ້ໄຂ '+bad.length+' ຂໍ້ທີ່ໝາຍ ✕ ກ່ອນ.';msg.className='form-msg bad';$('#f-checks').scrollIntoView({block:'center'});return;}
+  if(!draft.pledge){msg.textContent='ກະລຸນາໝາຍຢັ້ງຢືນຂໍ້ມູນກ່ອນສົ່ງ.';msg.className='form-msg bad';return;}
+  const rec=Object.assign(r,{submittedAt:nowL(),status:'pending',decision:null,returnedAt:'',returnBy:'',late:0});
+  if(r.type==='ອຊ'){rec.emergencyName=rec.emergencyName||'';rec.emergencyPhone=rec.emergencyPhone||'';}
+  delete rec.pledge;
+  const linkId=rec.linkId;delete rec.linkId;
+  if(linkId){const old=get(linkId);rec.id=old.id;rec.phoneLog=old.phoneLog;rec.returnedAt=old.returnedAt||'';rec.late=old.late||0;rec.returnBy=old.returnBy||'';rec.returnAck=old.returnAck;rec.returnAckAt=old.returnAckAt;rec.no=nextNo(rec);Object.assign(old,rec);}
+  else{rec.id=uid();rec.no=nextNo(rec);state.records.push(rec);}
+  save();draft=newDraft();state.tab.officer='mine';render();window.scrollTo(0,0);
+  openDetail(rec.id,'ສົ່ງໃບລາ '+rec.no+' ແລ້ວ · ສົ່ງອອກເປັນຮູບເພື່ອແຈ້ງໃນກຸ່ມ');
+});
+
+$('#today').textContent='ວັນ'+wd(today())+' '+fD(today());
+render();
+(async()=>{try{if(window.claude&&typeof window.claude.use==='function'){DL=await window.claude.use('downloads');}}catch(e){DL=null;}})();
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="lo">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ລະບົບບັນທຶກປະຈຳການ - ໜ່ວຍເມືອງຄອບ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@300;400;500;600;700&display=swap');
+        body {
+            font-family: 'Noto Sans Lao', sans-serif;
+            background-color: #f3f4f6;
+        }
+        .table-container::-webkit-scrollbar {
+            height: 8px;
+        }
+        .table-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        .table-container::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="text-gray-800">
+
+    <!-- ແຈ້ງເຕືອນ (Toast Notification) -->
+    <div id="toast" class="fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg transform transition-transform duration-300 translate-x-full z-50 flex items-center gap-3 opacity-0">
+        <i class="fa-solid fa-circle-check text-xl"></i>
+        <span id="toastMsg" class="font-medium">ບັນທຶກການເຂົ້າປະຈຳການສຳເລັດ!</span>
+    </div>
+
+    <!-- ແຈ້ງເຕືອນ (Password Modal) -->
+    <div id="passwordModal" class="fixed inset-0 bg-black bg-opacity-50 z-[60] hidden flex items-center justify-center">
+        <div class="bg-white p-6 rounded-xl shadow-xl w-96 transform transition-all scale-100">
+            <h3 class="text-xl font-bold text-gray-800 mb-4"><i class="fa-solid fa-lock mr-2"></i>ຢືນຢັນຕົວຕົນ (ຜູ້ຄຸ້ມຄອງ)</h3>
+            <p class="text-gray-600 mb-4 text-sm">ກະລຸນາປ້ອນລະຫັດຜ່ານເພື່ອເຂົ້າເຖິງໜ້າຜູ້ຄຸ້ມຄອງ.</p>
+            <input type="password" id="adminPassword" class="w-full border border-gray-300 rounded-lg px-4 py-2 mb-4 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" placeholder="ລະຫັດຜ່ານ..." onkeypress="if(event.key === 'Enter') app.verifyAdmin()">
+            <div id="passwordError" class="text-red-500 text-sm mb-4 hidden">ລະຫັດຜ່ານບໍ່ຖືກຕ້ອງ!</div>
+            <div class="flex justify-end gap-2">
+                <button onclick="app.closePasswordModal()" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">ຍົກເລີກ</button>
+                <button onclick="app.verifyAdmin()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">ຢືນຢັນ</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ແຈ້ງເຕືອນລຶບ (Delete Modal) -->
+    <div id="deleteModal" class="fixed inset-0 bg-black bg-opacity-50 z-[60] hidden flex items-center justify-center">
+        <div class="bg-white p-6 rounded-xl shadow-xl w-96 transform transition-all scale-100">
+            <h3 class="text-xl font-bold text-red-600 mb-4"><i class="fa-solid fa-triangle-exclamation mr-2"></i>ຢືນຢັນການລຶບ</h3>
+            <p class="text-gray-600 mb-6 text-sm">ທ່ານແນ່ໃຈບໍ່ທີ່ຈະລຶບລາຍຊື່ນີ້? ຂໍ້ມູນການເຂົ້າປະຈຳການທີ່ຜ່ານມາຈະຖືກລຶບນຳທັງໝົດ.</p>
+            <div class="flex justify-end gap-2">
+                <button onclick="app.closeDeleteModal()" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">ຍົກເລີກ</button>
+                <button onclick="app.confirmDelete()" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors">ລຶບ</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ແຈ້ງເຕືອນແກ້ໄຂ (Edit Modal) -->
+    <div id="editModal" class="fixed inset-0 bg-black bg-opacity-50 z-[60] hidden flex items-center justify-center">
+        <div class="bg-white p-6 rounded-xl shadow-xl w-96 transform transition-all scale-100">
+            <h3 class="text-xl font-bold text-gray-800 mb-4"><i class="fa-solid fa-pen-to-square mr-2"></i>ແກ້ໄຂຂໍ້ມູນ</h3>
+            <label class="block text-sm text-gray-600 mb-1">ຊື່, ຕຳແໜ່ງ ຫຼື ເບີໂທ:</label>
+            <input type="text" id="editOfficerName" class="w-full border border-gray-300 rounded-lg px-4 py-2 mb-4 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" onkeypress="if(event.key === 'Enter') app.saveEdit()">
+            <div class="flex justify-end gap-2">
+                <button onclick="app.closeEditModal()" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">ຍົກເລີກ</button>
+                <button onclick="app.saveEdit()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">ບັນທຶກ</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-6xl mx-auto p-4 md:p-6">
+        <!-- Header & Navigation -->
+        <header class="bg-blue-800 text-white p-6 rounded-xl shadow-lg mb-6 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-4">
+                <div class="bg-white p-3 rounded-full text-blue-800">
+                    <i class="fa-solid fa-shield-halved text-2xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold">ລະບົບບັນທຶກການເຂົ້າປະຈຳການ</h1>
+                    <p class="text-blue-200">ໜ່ວຍ: ເມືອງຄອບ</p>
+                </div>
+            </div>
+
+            <!-- Tabs -->
+            <div class="flex flex-wrap justify-center bg-blue-900 rounded-lg p-1 gap-1">
+                <button onclick="app.switchTab('checkin')" id="tab-checkin" class="px-6 py-2 rounded-md font-medium transition-colors bg-white text-blue-800 shadow">
+                    <i class="fa-solid fa-fingerprint mr-2"></i>ລົງເວລາດ້ວຍຕົນເອງ
+                </button>
+                <button onclick="app.switchTab('admin')" id="tab-admin" class="px-6 py-2 rounded-md font-medium transition-colors text-blue-100 hover:text-white">
+                    <i class="fa-solid fa-users-gear mr-2"></i>ຜູ້ຄຸ້ມຄອງ
+                </button>
+                <a href="https://script.google.com/macros/s/AKfycbyHycdbHn73ir_ZKXQXpm2puN6zX1drI-zUHHw_LYCuIS9mJOiUd--JrBPM8ox9_jRsTQ/exec?page=leave" target="_top" class="px-6 py-2 rounded-md font-medium transition-colors bg-amber-400 text-blue-900 hover:bg-amber-300 shadow">
+                    <i class="fa-solid fa-file-signature mr-2"></i>ຂໍລາພັກ
+                </a>
+            </div>
+        </header>
+
+        <!-- ========================================== -->
+        <!-- ໜ້າລົງເວລາດ້ວຍຕົນເອງ (Self Check-in View) -->
+        <!-- ========================================== -->
+        <div id="checkInView" class="block space-y-6">
+            <a href="https://script.google.com/macros/s/AKfycbyHycdbHn73ir_ZKXQXpm2puN6zX1drI-zUHHw_LYCuIS9mJOiUd--JrBPM8ox9_jRsTQ/exec?page=leave" target="_top" class="flex items-center gap-4 bg-amber-50 hover:bg-amber-100 border-2 border-amber-300 rounded-xl shadow-md p-5 no-underline">
+                <span class="bg-amber-400 text-blue-900 w-14 h-14 rounded-full flex items-center justify-center text-2xl flex-none"><i class="fa-solid fa-file-signature"></i></span>
+                <span class="flex-1">
+                    <span class="block text-xl font-bold text-blue-900">ຂໍລາພັກ / ອອກຊົ່ວຄາວ</span>
+                    <span class="block text-gray-600">ຂຽນໃບລາ · ເບິ່ງສະຖານະໃບລາ · ຫົວໜ້າອະນຸມັດ</span>
+                </span>
+                <i class="fa-solid fa-chevron-right text-amber-500 text-xl"></i>
+            </a>
+            <div class="bg-white rounded-xl shadow-md p-8 text-center border border-gray-100">
+                <h2 id="realtimeClock" class="text-5xl md:text-6xl font-bold text-gray-800 mb-2 font-mono">00:00:00</h2>
+                <p id="realtimeDate" class="text-lg text-blue-600 font-medium">ວັນທີ...</p>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-md p-6 border border-gray-100">
+                <h3 class="text-xl font-semibold mb-6 text-gray-700 border-b pb-3"><i class="fa-solid fa-clipboard-check mr-2"></i>ກະລຸນາເລືອກຊື່ຂອງທ່ານເພື່ອລົງເວລາ</h3>
+                <div id="kioskOfficerList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Cards will be generated here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- ໜ້າຜູ້ຄຸ້ມຄອງ (Admin View) -->
+        <!-- ========================================== -->
+        <div id="adminView" class="hidden">
+            <div class="flex justify-end mb-4">
+                <div class="flex items-center gap-3 bg-white border border-gray-200 shadow-sm p-2 rounded-lg">
+                    <i class="fa-regular fa-calendar text-blue-600 ml-2"></i>
+                    <span class="text-sm text-gray-500">ເບິ່ງຍ້ອນຫຼັງ:</span>
+                    <input type="date" id="currentDate" class="bg-transparent text-gray-800 border-none focus:ring-0 cursor-pointer outline-none font-bold" onchange="app.changeDate()">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Left Column: Officers & Attendance -->
+                <div class="lg:col-span-2 space-y-6">
+                    <div class="bg-white p-6 rounded-xl shadow-md border border-gray-100">
+                        <h2 class="text-lg font-semibold mb-4 text-gray-700 border-b pb-2"><i class="fa-solid fa-user-plus mr-2"></i>ຈັດການລາຍຊື່ຕຳຫຼວດ</h2>
+                        <div class="flex gap-2">
+                            <input type="text" id="newOfficerName" placeholder="ປ້ອນຊື່ ແລະ ນາມສະກຸນ..." class="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" onkeypress="if(event.key === 'Enter') app.addOfficer()">
+                            <button onclick="app.addOfficer()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition duration-200">
+                                ເພີ່ມລາຍຊື່
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
+                        <div class="p-6 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
+                            <h2 class="text-lg font-semibold text-gray-700"><i class="fa-solid fa-list-check mr-2"></i>ສະຖານະປະຈຳວັນທີ: <span id="displayDate" class="text-blue-600"></span></h2>
+                            <span class="text-sm bg-blue-100 text-blue-800 py-1 px-3 rounded-full" id="attendanceCount">ມາ 0 / 0</span>
+                        </div>
+                        <div class="p-0">
+                            <ul id="officerList" class="divide-y divide-gray-100 max-h-[500px] overflow-y-auto">
+                                <!-- List will be generated here -->
+                            </ul>
+                            <div id="emptyListMsg" class="p-8 text-center text-gray-400 hidden">
+                                <i class="fa-solid fa-users-slash text-4xl mb-3"></i>
+                                <p>ຍັງບໍ່ມີລາຍຊື່ໃນລະບົບ ກະລຸນາເພີ່ມລາຍຊື່ກ່ອນ</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Settings & Summary -->
+                <div class="space-y-6">
+                    <div class="bg-white p-6 rounded-xl shadow-md border border-gray-100">
+                        <h2 class="text-lg font-semibold mb-4 text-gray-700 border-b pb-2"><i class="fa-solid fa-coins mr-2"></i>ຕັ້ງຄ່າອັດຕາກິນ</h2>
+                        <div>
+                            <label class="block text-sm text-gray-600 mb-1">ອັດຕາກິນຕໍ່ຄົນ/ຕໍ່ວັນ (ກີບ)</label>
+                            <div class="relative">
+                                <input type="number" id="dailyRate" class="w-full border border-gray-300 rounded-lg pl-4 pr-12 py-2 focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 font-bold text-lg" onchange="app.updateRate()" onkeyup="app.updateRate()">
+                                <span class="absolute right-4 top-2 text-gray-400 font-bold">₭</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-xl shadow-md border border-gray-100">
+                        <div class="flex justify-between items-center border-b pb-2 mb-4">
+                            <h2 class="text-lg font-semibold text-gray-700"><i class="fa-solid fa-chart-pie mr-2"></i>ສະຫຼຸບອັດຕາກິນ</h2>
+                            <button onclick="app.exportToCSV()" class="bg-green-600 hover:bg-green-700 text-white text-sm px-3 py-1.5 rounded flex items-center gap-2 transition duration-200" title="ດາວໂຫຼດໄປໃຊ້ໃນ Google Sheets">
+                                <i class="fa-solid fa-file-csv"></i> ສົ່ງອອກ CSV
+                            </button>
+                        </div>
+
+                        <!-- Date Range Filter -->
+                        <div class="flex flex-col md:flex-row items-center gap-3 mb-4 bg-blue-50 p-3 rounded-lg border border-blue-100">
+                            <div class="flex items-center gap-2 w-full md:w-auto">
+                                <span class="text-sm text-gray-600 whitespace-nowrap">ເລີ່ມແຕ່:</span>
+                                <input type="date" id="summaryStartDate" class="flex-1 border border-gray-300 rounded px-2 py-1 text-sm focus:ring-1 focus:ring-blue-500 outline-none" onchange="app.updateDateRange()">
+                            </div>
+                            <div class="flex items-center gap-2 w-full md:w-auto">
+                                <span class="text-sm text-gray-600 whitespace-nowrap">ຫາ:</span>
+                                <input type="date" id="summaryEndDate" class="flex-1 border border-gray-300 rounded px-2 py-1 text-sm focus:ring-1 focus:ring-blue-500 outline-none" onchange="app.updateDateRange()">
+                            </div>
+                        </div>
+
+                        <div class="table-container overflow-x-auto">
+                            <table class="w-full text-sm text-left">
+                                <thead class="text-xs text-gray-700 bg-gray-50 uppercase">
+                                    <tr>
+                                        <th scope="col" class="px-4 py-3 rounded-tl-lg">ຊື່ ແລະ ນາມສະກຸນ</th>
+                                        <th scope="col" class="px-4 py-3 text-center">ຈຳນວນມື້</th>
+                                        <th scope="col" class="px-4 py-3 text-right rounded-tr-lg">ລວມເງິນ (ກີບ)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="summaryTableBody" class="divide-y divide-gray-100">
+                                    <!-- Summary will be generated here -->
+                                </tbody>
+                                <tfoot class="bg-green-50 font-bold text-gray-800">
+                                    <tr>
+                                        <td class="px-4 py-3 rounded-bl-lg">ລວມທັງໝົດ:</td>
+                                        <td class="px-4 py-3 text-center" id="totalDays">0</td>
+                                        <td class="px-4 py-3 text-right text-green-700 rounded-br-lg" id="totalMoney">0</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Formatter for Lao Kip
+        const kipFormatter = new Intl.NumberFormat('lo-LA');
+
+        // 🟢 ວາງ Web app URL ທີ່ໄດ້ຈາກ Google Apps Script (code.gs) ລົງໃນຫວ່າງເຄື່ອງໝາຍ '' ດ້ານລຸ່ມນີ້:
+        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyZo7V4dykBn9LTvFI4vk6qiE9gIntQHKelEy8UX70n2P3Cuwu9cHJ1fcD5Rq_tDN9HBQ/exec';
+
+        // Main App Logic
+        const app = {
+            data: {
+                rate: 50000,
+                officers: [],
+                records: {}
+            },
+            currentDateStr: '',
+            todayStr: '',
+            currentTab: 'checkin',
+            clockInterval: null,
+            isAdmin: false,
+            startDateStr: '',
+            endDateStr: '',
+            editingId: null,
+            deletingId: null,
+
+            async init() {
+                this.updateTodayDate();
+                this.currentDateStr = this.todayStr;
+
+                const today = new Date();
+                const yyyy = today.getFullYear();
+                const mm = String(today.getMonth() + 1).padStart(2, '0');
+                this.startDateStr = `${yyyy}-${mm}-01`;
+                this.endDateStr = this.todayStr;
+
+                document.getElementById('currentDate').value = this.currentDateStr;
+                document.getElementById('dailyRate').value = this.data.rate;
+                document.getElementById('summaryStartDate').value = this.startDateStr;
+                document.getElementById('summaryEndDate').value = this.endDateStr;
+
+                if(this.data.officers.length === 0){
+                    const id1 = Date.now();
+                    const id2 = Date.now() + 1;
+                    this.data.officers = [
+                        {id: id1, name: "ພັຕ ແຫ້ງ ວົງສາ (02095387448)"},
+                        {id: id2, name: "ສທ ຈັນທະການ ຄຳວິພາ (02099231566)"}
+                    ];
+                }
+
+                // 🟢 ດຶງຂໍ້ມູນຈາກ Google Sheets ຖ້າໜ້ານີ້ຖືກເປີດຜ່ານ Apps Script (google.script.run ມີໃຫ້ໃຊ້)
+                if (this.hasCloud()) {
+                    await this.fetchDataFromCloud();
+                } else if (GOOGLE_SCRIPT_URL !== 'ປ່ຽນຂໍ້ຄວາມນີ້ເປັນ_URL_ທີ່ໄດ້ຈາກການ_Deploy') {
+                    await this.fetchDataFromCloudFetch();
+                }
+
+                this.startClock();
+                this.render();
+            },
+
+            // ໜ້ານີ້ຖືກເປີດຜ່ານ Apps Script HtmlService ບໍ່? (google.script ຈະຖືກສີດເຂົ້າມາອັດຕະໂນມັດເມື່ອເປັນແນວນັ້ນ)
+            hasCloud() {
+                return typeof google !== 'undefined' && google.script && google.script.run;
+            },
+
+            // ວິທີຫຼັກ: ໃຊ້ google.script.run (ບໍ່ຕິດບັນຫາ CORS/ຄຸກກີ້ ເພາະບໍ່ຜ່ານ fetch() ທຳມະດາ)
+            fetchDataFromCloud() {
+                return new Promise((resolve) => {
+                    this.showToast('ກຳລັງດຶງຂໍ້ມູນຈາກ Google Sheets...', 'info');
+                    google.script.run
+                        .withSuccessHandler((cloudData) => {
+                            if (cloudData && cloudData.officers) {
+                                this.data = cloudData;
+                                this.render();
+                                document.getElementById('dailyRate').value = this.data.rate;
+                                this.showToast('ດຶງຂໍ້ມູນສຳເລັດແລ້ວ!');
+                            }
+                            resolve();
+                        })
+                        .withFailureHandler((error) => {
+                            console.error('Error fetching data:', error);
+                            this.showToast('ບໍ່ສາມາດດຶງຂໍ້ມູນໄດ້, ກວດເບິ່ງອິນເຕີເນັດ!', 'error');
+                            resolve();
+                        })
+                        .getAttendanceData();
+                });
+            },
+
+            saveToCloud() {
+                if (this.hasCloud()) {
+                    google.script.run
+                        .withFailureHandler((error) => {
+                            console.error('Error saving data:', error);
+                            this.showToast('ການບັນທຶກອອນລາຍລົ້ມເຫຼວ!', 'error');
+                        })
+                        .saveAttendanceData(JSON.stringify(this.data));
+                    return;
+                }
+                this.saveToCloudFetch();
+            },
+
+            // ວິທີສຳຮອງ: ໃຊ້ fetch() ຫາ ?action=data (ໃຊ້ໄດ້ຖ້າ host index.html ແຍກຕ່າງຫາກ ບໍ່ໄດ້ຢູ່ໃນ Apps Script)
+            async fetchDataFromCloudFetch() {
+                try {
+                    this.showToast('ກຳລັງດຶງຂໍ້ມູນຈາກ Google Sheets...', 'info');
+                    const response = await fetch(GOOGLE_SCRIPT_URL + '?action=data');
+                    const cloudData = await response.json();
+
+                    if(cloudData && cloudData.officers) {
+                        this.data = cloudData;
+                        this.render();
+                        document.getElementById('dailyRate').value = this.data.rate;
+                        this.showToast('ດຶງຂໍ້ມູນສຳເລັດແລ້ວ!');
+                    }
+                } catch (error) {
+                    console.error('Error fetching data:', error);
+                    this.showToast('ບໍ່ສາມາດດຶງຂໍ້ມູນໄດ້, ກວດເບິ່ງອິນເຕີເນັດ!', 'error');
+                }
+            },
+
+            async saveToCloudFetch() {
+                if(GOOGLE_SCRIPT_URL === 'ປ່ຽນຂໍ້ຄວາມນີ້ເປັນ_URL_ທີ່ໄດ້ຈາກການ_Deploy') return;
+
+                try {
+                    await fetch(GOOGLE_SCRIPT_URL, {
+                        method: 'POST',
+                        body: JSON.stringify({ data: this.data }),
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+                    });
+                } catch (error) {
+                    console.error('Error saving data:', error);
+                    this.showToast('ການບັນທຶກອອນລາຍລົ້ມເຫຼວ!', 'error');
+                }
+            },
+
+            updateTodayDate() {
+                const today = new Date();
+                const yyyy = today.getFullYear();
+                const mm = String(today.getMonth() + 1).padStart(2, '0');
+                const dd = String(today.getDate()).padStart(2, '0');
+                this.todayStr = `${yyyy}-${mm}-${dd}`;
+            },
+
+            startClock() {
+                const updateTime = () => {
+                    const now = new Date();
+
+                    const hours = String(now.getHours()).padStart(2, '0');
+                    const minutes = String(now.getMinutes()).padStart(2, '0');
+                    const seconds = String(now.getSeconds()).padStart(2, '0');
+                    document.getElementById('realtimeClock').innerText = `${hours}:${minutes}:${seconds}`;
+
+                    const days = ['ວັນອາທິດ', 'ວັນຈັນ', 'ວັນອັງຄານ', 'ວັນພຸດ', 'ວັນພະຫັດ', 'ວັນສຸກ', 'ວັນເສົາ'];
+                    const months = ['ມັງກອນ', 'ກຸມພາ', 'ມີນາ', 'ເມສາ', 'ພຶດສະພາ', 'ມິຖຸນາ', 'ກໍລະກົດ', 'ສິງຫາ', 'ກັນຍາ', 'ຕຸລາ', 'ພະຈິກ', 'ທັນວາ'];
+                    const dayName = days[now.getDay()];
+                    const day = now.getDate();
+                    const monthName = months[now.getMonth()];
+                    const year = now.getFullYear();
+                    document.getElementById('realtimeDate').innerText = `${dayName}, ທີ ${day} ${monthName} ${year}`;
+
+                    const newTodayStr = `${year}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                    if(newTodayStr !== this.todayStr) {
+                        this.todayStr = newTodayStr;
+                        if(this.currentTab === 'checkin') {
+                            this.currentDateStr = this.todayStr;
+                            this.render();
+                        }
+                    }
+                };
+
+                updateTime();
+                this.clockInterval = setInterval(updateTime, 1000);
+            },
+
+            showPasswordModal() {
+                document.getElementById('passwordModal').classList.remove('hidden');
+                document.getElementById('adminPassword').value = '';
+                document.getElementById('passwordError').classList.add('hidden');
+                setTimeout(() => document.getElementById('adminPassword').focus(), 100);
+            },
+
+            closePasswordModal() {
+                document.getElementById('passwordModal').classList.add('hidden');
+            },
+
+            verifyAdmin() {
+                const pwd = document.getElementById('adminPassword').value;
+                if (pwd === 'admin') {
+                    this.isAdmin = true;
+                    this.closePasswordModal();
+                    this.switchTab('admin');
+                    this.showToast('ປົດລັອກໜ້າຜູ້ຄຸ້ມຄອງສຳເລັດ!');
+                } else {
+                    document.getElementById('passwordError').classList.remove('hidden');
+                }
+            },
+
+            switchTab(tab) {
+                if (tab === 'admin' && !this.isAdmin) {
+                    this.showPasswordModal();
+                    return;
+                }
+
+                this.currentTab = tab;
+                const checkinBtn = document.getElementById('tab-checkin');
+                const adminBtn = document.getElementById('tab-admin');
+                const checkinView = document.getElementById('checkInView');
+                const adminView = document.getElementById('adminView');
+
+                if (tab === 'checkin') {
+                    this.updateTodayDate();
+                    this.currentDateStr = this.todayStr;
+                    document.getElementById('currentDate').value = this.currentDateStr;
+
+                    checkinBtn.className = "px-6 py-2 rounded-md font-medium transition-colors bg-white text-blue-800 shadow";
+                    adminBtn.className = "px-6 py-2 rounded-md font-medium transition-colors text-blue-100 hover:text-white";
+                    checkinView.classList.remove('hidden');
+                    adminView.classList.add('hidden');
+                } else {
+                    adminBtn.className = "px-6 py-2 rounded-md font-medium transition-colors bg-white text-blue-800 shadow";
+                    checkinBtn.className = "px-6 py-2 rounded-md font-medium transition-colors text-blue-100 hover:text-white";
+                    adminView.classList.remove('hidden');
+                    checkinView.classList.add('hidden');
+                }
+                this.render();
+            },
+
+            changeDate() {
+                const dateVal = document.getElementById('currentDate').value;
+                if(dateVal) {
+                    this.currentDateStr = dateVal;
+                    this.render();
+                }
+            },
+
+            addOfficer() {
+                const input = document.getElementById('newOfficerName');
+                const name = input.value.trim();
+                if (name) {
+                    const newId = Date.now();
+                    this.data.officers.push({ id: newId, name: name });
+                    input.value = '';
+                    this.render();
+                    this.saveToCloud();
+                    this.showToast(`ເພີ່ມລາຍຊື່ ${name} ສຳເລັດແລ້ວ!`);
+                }
+            },
+
+            deleteOfficer(id) {
+                this.deletingId = id;
+                document.getElementById('deleteModal').classList.remove('hidden');
+            },
+
+            closeDeleteModal() {
+                this.deletingId = null;
+                document.getElementById('deleteModal').classList.add('hidden');
+            },
+
+            confirmDelete() {
+                if (this.deletingId) {
+                    const id = this.deletingId;
+                    this.data.officers = this.data.officers.filter(o => o.id !== id);
+                    for (let date in this.data.records) {
+                        this.data.records[date] = this.data.records[date].filter(recordId => recordId !== id);
+                    }
+                    this.render();
+                    this.saveToCloud();
+                    this.showToast('ລຶບຂໍ້ມູນສຳເລັດແລ້ວ!');
+                    this.closeDeleteModal();
+                }
+            },
+
+            editOfficer(id) {
+                const officer = this.data.officers.find(o => o.id === id);
+                if (officer) {
+                    this.editingId = id;
+                    document.getElementById('editOfficerName').value = officer.name;
+                    document.getElementById('editModal').classList.remove('hidden');
+                    setTimeout(() => document.getElementById('editOfficerName').focus(), 100);
+                }
+            },
+
+            closeEditModal() {
+                this.editingId = null;
+                document.getElementById('editModal').classList.add('hidden');
+            },
+
+            saveEdit() {
+                if (this.editingId) {
+                    const newName = document.getElementById('editOfficerName').value;
+                    if (newName !== null && newName.trim() !== "") {
+                        const officer = this.data.officers.find(o => o.id === this.editingId);
+                        if (officer) {
+                            officer.name = newName.trim();
+                            this.render();
+                            this.saveToCloud();
+                            this.showToast('ແກ້ໄຂຂໍ້ມູນສຳເລັດແລ້ວ!');
+                        }
+                    }
+                    this.closeEditModal();
+                }
+            },
+
+            selfCheckIn(id, name) {
+                if (!this.data.records[this.todayStr]) {
+                    this.data.records[this.todayStr] = [];
+                }
+
+                if (!this.data.records[this.todayStr].includes(id)) {
+                    this.data.records[this.todayStr].push(id);
+                    this.render();
+                    this.saveToCloud();
+                    this.showToast(`ສຳເລັດ! ${name} ໄດ້ລົງເວລາແລ້ວ`);
+                }
+            },
+
+            toggleAttendance(id) {
+                if (!this.data.records[this.currentDateStr]) {
+                    this.data.records[this.currentDateStr] = [];
+                }
+
+                const index = this.data.records[this.currentDateStr].indexOf(id);
+                if (index === -1) {
+                    this.data.records[this.currentDateStr].push(id);
+                } else {
+                    this.data.records[this.currentDateStr].splice(index, 1);
+                }
+                this.render();
+                this.saveToCloud();
+            },
+
+            updateRate() {
+                const rateInput = document.getElementById('dailyRate').value;
+                this.data.rate = parseFloat(rateInput) || 0;
+                this.renderSummary();
+                this.saveToCloud();
+            },
+
+            updateDateRange() {
+                const start = document.getElementById('summaryStartDate').value;
+                const end = document.getElementById('summaryEndDate').value;
+                if (start && end) {
+                    this.startDateStr = start;
+                    this.endDateStr = end;
+                    this.renderSummary();
+                }
+            },
+
+            showToast(message, type = 'success') {
+                const toast = document.getElementById('toast');
+                const icon = toast.querySelector('i');
+                const msgSpan = document.getElementById('toastMsg');
+
+                if(type === 'info') {
+                    toast.className = "fixed top-4 right-4 bg-blue-500 text-white px-6 py-3 rounded-lg shadow-lg transform transition-transform duration-300 z-50 flex items-center gap-3";
+                    icon.className = "fa-solid fa-spinner fa-spin text-xl";
+                } else if(type === 'error') {
+                    toast.className = "fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg transform transition-transform duration-300 z-50 flex items-center gap-3";
+                    icon.className = "fa-solid fa-triangle-exclamation text-xl";
+                } else {
+                    toast.className = "fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg transform transition-transform duration-300 z-50 flex items-center gap-3";
+                    icon.className = "fa-solid fa-circle-check text-xl";
+                }
+
+                msgSpan.innerText = message;
+
+                toast.classList.remove('translate-x-full', 'opacity-0');
+
+                if(type !== 'info') {
+                    setTimeout(() => {
+                        toast.classList.add('translate-x-full', 'opacity-0');
+                    }, 3000);
+                }
+            },
+
+            formatDateLao(dateStr) {
+                if(!dateStr) return '';
+                const [year, month, day] = dateStr.split('-');
+                return `${day}/${month}/${year}`;
+            },
+
+            render() {
+                if (this.currentTab === 'checkin') {
+                    this.renderKiosk();
+                } else {
+                    this.renderAdmin();
+                }
+            },
+
+            renderKiosk() {
+                const listEl = document.getElementById('kioskOfficerList');
+                listEl.innerHTML = '';
+                const todayRecords = this.data.records[this.todayStr] || [];
+
+                if (this.data.officers.length === 0) {
+                    listEl.innerHTML = `<div class="col-span-full text-center py-10 text-gray-400">ຍັງບໍ່ມີລາຍຊື່ໃນລະບົບ. ກະລຸນາໄປທີ່ໜ້າຜູ້ຄຸ້ມຄອງເພື່ອເພີ່ມລາຍຊື່.</div>`;
+                    return;
+                }
+
+                this.data.officers.forEach(officer => {
+                    const isPresent = todayRecords.includes(officer.id);
+                    const safeName = officer.name.replace(/'/g, "\\'");
+
+                    const card = document.createElement('div');
+                    card.className = `p-5 rounded-xl border flex flex-col items-center justify-center text-center transition-all ${isPresent ? 'bg-green-50 border-green-200' : 'bg-white border-gray-200 hover:shadow-md'}`;
+
+                    if (isPresent) {
+                        card.innerHTML = `
+                            <div class="w-16 h-16 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-3xl mb-3">
+                                <i class="fa-solid fa-check"></i>
+                            </div>
+                            <h4 class="font-bold text-gray-800 text-lg mb-1">${officer.name}</h4>
+                            <span class="text-sm text-green-700 bg-green-100 px-3 py-1 rounded-full"><i class="fa-solid fa-clock-rotate-left mr-1"></i>ບັນທຶກແລ້ວ</span>
+                        `;
+                    } else {
+                        card.innerHTML = `
+                            <div class="w-16 h-16 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center text-3xl mb-3">
+                                <i class="fa-regular fa-user"></i>
+                            </div>
+                            <h4 class="font-bold text-gray-800 text-lg mb-3">${officer.name}</h4>
+                            <button onclick="app.selfCheckIn(${officer.id}, '${safeName}')" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-lg transition-colors shadow-sm active:scale-95">
+                                <i class="fa-solid fa-fingerprint mr-1"></i> ລົງເວລາເຂົ້າ
+                            </button>
+                        `;
+                    }
+                    listEl.appendChild(card);
+                });
+            },
+
+            renderAdmin() {
+                document.getElementById('displayDate').innerText = this.formatDateLao(this.currentDateStr);
+
+                const listEl = document.getElementById('officerList');
+                const emptyMsg = document.getElementById('emptyListMsg');
+                listEl.innerHTML = '';
+
+                const currentRecords = this.data.records[this.currentDateStr] || [];
+                let presentCount = 0;
+
+                if (this.data.officers.length === 0) {
+                    emptyMsg.classList.remove('hidden');
+                } else {
+                    emptyMsg.classList.add('hidden');
+
+                    this.data.officers.forEach(officer => {
+                        const isPresent = currentRecords.includes(officer.id);
+                        if (isPresent) presentCount++;
+
+                        const li = document.createElement('li');
+                        li.className = `p-4 flex items-center justify-between transition-colors hover:bg-gray-50 ${isPresent ? 'bg-blue-50/50' : ''}`;
+
+                        li.innerHTML = `
+                            <div class="flex items-center gap-4 cursor-pointer flex-1" onclick="app.toggleAttendance(${officer.id})">
+                                <div class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold ${isPresent ? 'bg-blue-600' : 'bg-gray-300'} transition-colors">
+                                    ${isPresent ? '<i class="fa-solid fa-check"></i>' : '<i class="fa-solid fa-xmark"></i>'}
+                                </div>
+                                <div>
+                                    <p class="font-medium ${isPresent ? 'text-blue-900' : 'text-gray-700'}">${officer.name}</p>
+                                    <p class="text-xs ${isPresent ? 'text-blue-600' : 'text-gray-400'}">${isPresent ? 'ປະຈຳການ' : 'ຂາດ/ພັກ'}</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-1">
+                                <button onclick="app.editOfficer(${officer.id})" class="text-blue-400 hover:text-blue-600 p-2 rounded-full hover:bg-blue-50 transition-colors" title="ແກ້ໄຂລາຍຊື່">
+                                    <i class="fa-regular fa-pen-to-square"></i>
+                                </button>
+                                <button onclick="app.deleteOfficer(${officer.id})" class="text-red-400 hover:text-red-600 p-2 rounded-full hover:bg-red-50 transition-colors" title="ລຶບລາຍຊື່">
+                                    <i class="fa-regular fa-trash-can"></i>
+                                </button>
+                            </div>
+                        `;
+                        listEl.appendChild(li);
+                    });
+                }
+
+                document.getElementById('attendanceCount').innerText = `ມາ ${presentCount} / ${this.data.officers.length}`;
+                this.renderSummary();
+            },
+
+            renderSummary() {
+                const tbody = document.getElementById('summaryTableBody');
+                tbody.innerHTML = '';
+
+                let officerTotals = {};
+                this.data.officers.forEach(o => {
+                    officerTotals[o.id] = { name: o.name, days: 0 };
+                });
+
+                for (let date in this.data.records) {
+                    if (date >= this.startDateStr && date <= this.endDateStr) {
+                        this.data.records[date].forEach(id => {
+                            if(officerTotals[id]) {
+                                officerTotals[id].days += 1;
+                            }
+                        });
+                    }
+                }
+
+                let grandTotalDays = 0;
+                let grandTotalMoney = 0;
+
+                this.data.officers.forEach(o => {
+                    const stats = officerTotals[o.id];
+                    const money = stats.days * this.data.rate;
+
+                    grandTotalDays += stats.days;
+                    grandTotalMoney += money;
+
+                    const tr = document.createElement('tr');
+                    tr.className = "hover:bg-gray-50";
+                    tr.innerHTML = `
+                        <td class="px-4 py-3 font-medium text-gray-800">${stats.name}</td>
+                        <td class="px-4 py-3 text-center">${stats.days}</td>
+                        <td class="px-4 py-3 text-right font-medium text-gray-800">${kipFormatter.format(money)}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+
+                document.getElementById('totalDays').innerText = grandTotalDays;
+                document.getElementById('totalMoney').innerText = kipFormatter.format(grandTotalMoney);
+            },
+
+            exportToCSV() {
+                let csvContent = "﻿";
+                csvContent += `ລາຍງານອັດຕາກິນ, ຕັ້ງແຕ່ວັນທີ ${this.formatDateLao(this.startDateStr)} ຫາ ${this.formatDateLao(this.endDateStr)}\n\n`;
+                csvContent += "ລຳດັບ,ຊື່ ແລະ ນາມສະກຸນ,ຈຳນວນມື້ປະຈຳການ,ອັດຕາກິນຕໍ່ວັນ,ລວມເງິນ(ກີບ)\n";
+
+                let index = 1;
+                let grandTotalDays = 0;
+                let grandTotalMoney = 0;
+
+                let officerTotals = {};
+                this.data.officers.forEach(o => {
+                    officerTotals[o.id] = { name: o.name, days: 0 };
+                });
+
+                for (let date in this.data.records) {
+                    if (date >= this.startDateStr && date <= this.endDateStr) {
+                        this.data.records[date].forEach(id => {
+                            if(officerTotals[id]) {
+                                officerTotals[id].days += 1;
+                            }
+                        });
+                    }
+                }
+
+                this.data.officers.forEach(o => {
+                    const stats = officerTotals[o.id];
+                    const money = stats.days * this.data.rate;
+                    grandTotalDays += stats.days;
+                    grandTotalMoney += money;
+
+                    const safeName = stats.name.replace(/"/g, '""');
+                    csvContent += `${index},"${safeName}",${stats.days},${this.data.rate},${money}\n`;
+                    index++;
+                });
+
+                csvContent += `,,ລວມທັງໝົດ,${grandTotalDays},,${grandTotalMoney}\n`;
+
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement("a");
+                link.setAttribute("href", url);
+
+                const dateStr = new Date().toISOString().split('T')[0];
+                link.setAttribute("download", `ລາຍງານອັດຕາກິນ_ເມືອງຄອບ_${dateStr}.csv`);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+        };
+
+        window.onload = () => {
+            app.init();
+        };
+    </script>
+</body>
+</html>
