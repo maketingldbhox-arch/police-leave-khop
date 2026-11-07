@@ -123,6 +123,18 @@ window.LEAVE_API_URL='%s';
 </script>''' % EXEC_URL
 gh = page.replace('<?= baseUrl ?>', EXEC_URL)
 gh = gh.replace('<script src="https://cdnjs', SHIM + '\n<script src="https://cdnjs', 1)
+# logo (GitHub Pages only, so apps-script/Leave.gs stays identical to the live script)
+MARK = (ROOT/'docs'/'img'/'mark.svg').read_text().strip()
+HEAD = ('<link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">\n'
+        '<link rel="icon" type="image/svg+xml" href="img/logo.svg">\n'
+        '<link rel="apple-touch-icon" href="img/apple-touch-icon.png">\n'
+        '<link rel="manifest" href="manifest.webmanifest">\n'
+        '<meta name="theme-color" content="#2778b9">\n'
+        '<style>.mark.logo{border:0;border-radius:0;width:36px;height:44px}.mark.logo svg{width:100%;height:100%;display:block}</style>\n</head>')
+gh = gh.replace('</head>', HEAD, 1)
+old_mark = '<div class="mark" aria-hidden="true">ລພ</div>'
+assert old_mark in gh
+gh = gh.replace(old_mark, '<div class="mark logo" aria-hidden="true">' + MARK + '</div>', 1)
 assert '<?' not in gh and 'LEAVE_API_URL' in gh
 (ROOT/'docs'/'leave.html').write_text(gh)
 print('wrote docs/leave.html')
