@@ -4,6 +4,7 @@ Google Apps Script web app ທີ່ຜູກກັບ Google Sheet "web apps �
 
 - ໜ້າຫຼັກ (ລົງເວລາ / ຜູ້ຄຸ້ມຄອງ): `<web app URL>`
 - ລະບົບຂໍລາພັກ: `<web app URL>?page=leave`
+- **GitHub Pages** (ເຜີຍແຜ່ app): https://maketingldbhox-arch.github.io/police-leave-khop/ · ລະບົບຂໍລາ: https://maketingldbhox-arch.github.io/police-leave-khop/leave.html
 
 ## ໂຄງສ້າງ
 | ໂຟນເດີ | ເນື້ອໃນ |
@@ -22,3 +23,13 @@ Google Apps Script web app ທີ່ຜູກກັບ Google Sheet "web apps �
 - **ບັນທຶກການລາ**: 1 ແຖວ = 1 ໃບລາ (ຖັນ DATA ທີ່ເຊື່ອງໄວ້ແມ່ນຂໍ້ມູນລະບົບ, ຢ່າແກ້ດ້ວຍມື)
 - **LeaveDB** (ເຊື່ອງ): ລາຍຊື່ຕຳຫຼວດ, ການຕັ້ງຄ່າ, ເລກທີໃບລາ
 - ລະຫັດ admin ເກັບເປັນ hash ໃນ Script Properties (`LEAVE_ADMIN_HASH`), ບໍ່ຢູ່ໃນ repo ນີ້
+
+## ສະຖາປັດຕະຍະກຳ
+| ສ່ວນ | ໜ້າທີ່ |
+|---|---|
+| **Google Sheets** | ຖານຂໍ້ມູນ: ແຜ່ນ "ບັນທຶກການລາ", "LeaveDB" (ລະບົບຂໍລາ) ແລະ "ລາຍງານ" (ບັນທຶກປະຈຳການ) |
+| **Google Apps Script** | Backend / API: `Code.gs` (`doGet`, `doPost`) ແລະ `Leave.gs` (`leaveApi`) |
+| **GitHub Pages** (`docs/`) | ໜ້າເວັບທີ່ຜູ້ໃຊ້ເປີດ: `index.html` (ໜ້າເລືອກລະບົບ), `leave.html` (ລະບົບຂໍລາ) |
+
+`docs/leave.html` ເອີ້ນ Apps Script ດ້ວຍ `fetch` POST `{app:"leave", req:{...}}` → `doPost` ສົ່ງຕໍ່ໃຫ້ `leaveApi` → ອ່ານ/ຂຽນ Google Sheet.
+`docs/leave.html` ສ້າງຈາກ `build.py` ເຊັ່ນກັນ (ຢ່າແກ້ດ້ວຍມື). ຖ້າ URL web app ປ່ຽນ ໃຫ້ແກ້ `EXEC_URL` ໃນ `build.py` ແລ້ວ build ໃໝ່.

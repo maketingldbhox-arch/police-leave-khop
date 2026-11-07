@@ -95,6 +95,37 @@ page = f'''<!DOCTYPE html>
 assert page.count('<' + '?') == 1, 'stray scriptlet marker'
 DIST.mkdir(exist_ok=True)
 (DIST/'LeaveApp.html').write_text(page)
+
+# GitHub Pages version -> docs/leave.html
+# Same page, served from github.io. A tiny google.script.run shim sends each call to the
+# Apps Script web app with fetch (doPost in Code.gs routes {app:'leave'} to leaveApi), and
+# Google Sheets stays the database.
+EXEC_URL = 'https://script.google.com/macros/s/AKfycbyHycdbHn73ir_ZKXQXpm2puN6zX1drI-zUHHw_LYCuIS9mJOiUd--JrBPM8ox9_jRsTQ/exec'
+SHIM = '''<script>
+/* GitHub Pages: forward google.script.run.leaveApi(...) to the Apps Script web app */
+window.LEAVE_API_URL='%s';
+(function(){
+  function runner(ok,fail){
+    return new Proxy({},{get:function(_,k){
+      if(k==='withSuccessHandler')return function(f){return runner(f,fail);};
+      if(k==='withFailureHandler')return function(f){return runner(ok,f);};
+      return function(arg){
+        fetch(window.LEAVE_API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},
+          body:JSON.stringify({app:'leave',fn:String(k),req:JSON.parse(arg||'{}')})})
+        .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.text();})
+        .then(function(t){if(ok)ok(t);})
+        .catch(function(e){if(fail)fail(e);});
+      };
+    }});
+  }
+  window.google={script:{run:runner(null,null)}};
+})();
+</script>''' % EXEC_URL
+gh = page.replace('<?= baseUrl ?>', EXEC_URL)
+gh = gh.replace('<script src="https://cdnjs', SHIM + '\n<script src="https://cdnjs', 1)
+assert '<?' not in gh and 'LEAVE_API_URL' in gh
+(ROOT/'docs'/'leave.html').write_text(gh)
+print('wrote docs/leave.html')
 (DIST/'Leave.gs').write_text((SRC/'server.gs').read_text() + '\n\n' + core)
 print('built', len(page), 'bytes')
 

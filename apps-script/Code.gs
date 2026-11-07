@@ -170,6 +170,13 @@ function saveAttendanceData(jsonStr) {
  * ແລ້ວຂຽນທັບ Sheet ໃໝ່ທັງໝົດ (ຮັກສາຮູບແບບແຖວແບບເດີມ: 1 ແຖວ = 1 ຕຳຫຼວດ x 1 ວັນທີ)
  */
 function doPost(e) {
+  // ລະບົບຂໍລາ (ໜ້າເວັບຢູ່ GitHub Pages): {app:'leave', req:{...}} -> leaveApi
+  var leaveReq = null;
+  try { var lp = JSON.parse(e.postData.contents); if (lp && lp.app === 'leave') leaveReq = lp.req || {}; } catch (x) {}
+  if (leaveReq) {
+    return ContentService.createTextOutput(leaveApi(JSON.stringify(leaveReq)))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
   const lock = LockService.getScriptLock();
   lock.waitLock(30000);
   try {
