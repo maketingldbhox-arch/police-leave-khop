@@ -1,5 +1,5 @@
 /**
- * ລະບົບຂໍລາພັກ ຕຳຫຼວດປະຈຳການ · ໜ່ວຍບໍລິການ ເມືອງຄອບ
+ * ລະບົບເຂົ້າບັນທຶກ ຕຳຫຼວດປະຈຳການ · ໜ່ວຍບໍລິການ ເມືອງຄອບ
  * Server side for the leave web app. Stores data in the sheets
  *   "ບັນທຶກການລາ" (one row per leave record, readable) and "LeaveDB" (officers, settings, numbering).
  * The page is opened with  <web app URL>?page=leave
@@ -16,7 +16,7 @@ function leavePage_() {
   var t = HtmlService.createTemplateFromFile('LeaveApp');
   t.baseUrl = ScriptApp.getService().getUrl();
   return t.evaluate()
-    .setTitle('ລະບົບຂໍລາພັກ ຕຳຫຼວດ ເມືອງຄອບ')
+    .setTitle('ລະບົບເຂົ້າບັນທຶກ ຕຳຫຼວດ ເມືອງຄອບ')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1, viewport-fit=cover')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
