@@ -1126,7 +1126,6 @@ const clockText=()=>{const d=new Date();return p2(d.getHours())+':'+p2(d.getMinu
 const kip=n=>Math.round(Number(n)||0).toLocaleString('en-US');
 function attPart(it,mine){
   if(!it)return '';
-  if(!it.name)return '<span class="pill bad">ບໍ່ພົບຊື່ໃນລະບົບປະຈຳການ</span>';
   if(it.present)return '<span class="pill good">'+ic('check')+' ລົງເວລາແລ້ວ</span>';
   if(mine)return '<button class="btn primary sm att-in" type="button" data-act="att-in" data-id="'+esc(it.id)+'">'+ic('clock')+' ລົງເວລາເຂົ້າ</button>';
   return '<span class="pill">ຍັງບໍ່ລົງເວລາ</span>';

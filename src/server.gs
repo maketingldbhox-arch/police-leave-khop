@@ -244,7 +244,10 @@ function leaveAttCheckin_(store, id) {
   var o = lvOff_(store, id);
   if (!o || o.active === false) throw new Error('ບໍ່ພົບລາຍຊື່ເຈົ້າໜ້າທີ່');
   var a = lvAttRead_(), n = lvAttName_(a.names, o);
-  if (!n) throw new Error('ບໍ່ພົບຊື່ ' + lvFullName_(o) + ' ໃນລະບົບບັນທຶກປະຈຳການ: ໃຫ້ຜູ້ຄຸ້ມຄອງເພີ່ມຊື່ກ່ອນ');
+  if (!n) { // ເຈົ້າໜ້າທີ່ໃໝ່ (ເພີ່ມໃນລະບົບລາ): ເພີ່ມຊື່ເຂົ້າລະບົບປະຈຳການ ຮູບແບບ "ຍົດ ຊື່ (020...)"
+    var dg = String(o.phone || '').replace(/\D/g, '');
+    n = lvFullName_(o) + (dg ? ' (' + dg + ')' : '');
+  }
   var T = lvAttToday_();
   var todays = a.rows.filter(function (r) { return r.date === T; });
   var mine = todays.filter(function (r) { return r.name === n; })[0];
@@ -252,7 +255,8 @@ function leaveAttCheckin_(store, id) {
   if (mine) {
     a.sh.getRange(mine.row, 3, 1, 3).setValues([[LV_ATT_PRESENT, a.rate, a.rate]]);
   } else {
-    var add = todays.length ? [n] : a.names; // ມື້ໃໝ່: ໃສ່ທຸກຄົນ (ຄົນອື່ນ = ຂາດ/ພັກ) ຄືຮູບແບບເດີມ
+    var all = a.names.indexOf(n) < 0 ? a.names.concat([n]) : a.names;
+    var add = todays.length ? [n] : all; // ມື້ໃໝ່: ໃສ່ທຸກຄົນ (ຄົນອື່ນ = ຂາດ/ພັກ) ຄືຮູບແບບເດີມ
     var vals = add.map(function (x) { var p = x === n; return [T, x, p ? LV_ATT_PRESENT : LV_ATT_ABSENT, a.rate, p ? a.rate : 0]; });
     a.sh.getRange(a.sh.getLastRow() + 1, 1, vals.length, 5).setValues(vals);
   }
