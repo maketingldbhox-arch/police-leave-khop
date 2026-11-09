@@ -12,22 +12,26 @@ const ICON={
   back:'<path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/>',
   sheet:'<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M4 9h16M4 15h16M10 3v18"/>',
   refresh:'<path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/>',
-  user:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>'
+  user:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
+  cam:'<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>'
 };
 const ic=k=>'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+ICON[k]+'</svg>';
-const initials=o=>esc((o.name||'?').trim().slice(0,1));
+const initials=o=>esc(((o&&o.name)||'?').trim().slice(0,1));
+/* officer photo (from the hidden LeavePhotos sheet) or the first letter of the name */
+const photoOf=o=>(o&&state.photos&&state.photos[String(o.id)])||'';
+const avatar=(o,cls)=>{const p=photoOf(o);return '<span class="avatar'+(p?' has-ph':'')+(cls?' '+cls:'')+'">'+(p?'<img src="'+esc(p)+'" alt="">':initials(o))+'</span>';};
 
 /* ---------- who are you ---------- */
 function whoView(){
   return '<h2 class="who-h">ທ່ານແມ່ນໃຜ?</h2><p class="who-p">ເລືອກຊື່ຂອງທ່ານ ເພື່ອເລີ່ມໃຊ້ງານ · ເຄື່ອງນີ້ຈະຈື່ໄວ້</p><div class="whos">'+
-    actives().map(o=>'<button class="who-btn" type="button" data-act="pick" data-id="'+esc(o.id)+'"><span class="avatar">'+initials(o)+'</span><span><b>'+esc(full(o))+'</b><span class="r-sub">ຕຳຫຼວດປະຈຳການ · '+esc(o.phone||'')+'</span></span></button>').join('')+
+    actives().map(o=>'<button class="who-btn" type="button" data-act="pick" data-id="'+esc(o.id)+'">'+avatar(o)+'<span><b>'+esc(full(o))+'</b><span class="r-sub">ຕຳຫຼວດປະຈຳການ · '+esc(o.phone||'')+'</span></span></button>').join('')+
     '<button class="who-btn head" type="button" data-act="pick" data-id="__head"><span class="avatar">'+ic('user')+'</span><span><b>ຫົວໜ້າໜ່ວຍບໍລິການ</b><span class="r-sub">ອະນຸມັດ, ຕິດຕາມ ແລະ ສັງລວມການລາ (ຕ້ອງມີລະຫັດ)</span></span></button>'+
     '</div>';
 }
 function userBar(){
   const head=state.role==='head';
   const o=head?null:off(state.me);
-  return '<div class="userbar"><div class="who"><span class="avatar">'+(head?ic('user'):initials(o))+'</span><span class="nm"><b>'+(head?'ຫົວໜ້າໜ່ວຍບໍລິການ':esc(full(o)))+'</b><small>'+(head?(ui.headAuthed?'ເຂົ້າລະບົບແລ້ວ':'ຍັງບໍ່ເຂົ້າລະບົບ'):'ຕຳຫຼວດປະຈຳການ')+'</small></span></div>'+
+  return '<div class="userbar"><div class="who">'+(head?'<span class="avatar">'+ic('user')+'</span>':avatar(o))+'<span class="nm"><b>'+(head?'ຫົວໜ້າໜ່ວຍບໍລິການ':esc(full(o)))+'</b><small>'+(head?(ui.headAuthed?'ເຂົ້າລະບົບແລ້ວ':'ຍັງບໍ່ເຂົ້າລະບົບ'):'ຕຳຫຼວດປະຈຳການ')+'</small></span></div>'+
     '<div class="actions">'+(head&&ui.headAuthed?'<button class="btn ghost sm" type="button" data-act="logout">ອອກຈາກລະບົບ</button>':'')+'<button class="btn ghost sm" type="button" data-act="who">ປ່ຽນຜູ້ໃຊ້</button></div></div>';
 }
 
@@ -65,7 +69,7 @@ function board(){
       const s=todayStatus(o),it=by[String(o.id)],mine=off2&&String(o.id)===String(state.me);
       const sub=[s[2],(it&&it.name&&!off2?'ເດືອນນີ້ ປະຈຳການ '+it.month+' ມື້':'')].filter(Boolean).join(' · ');
       const leavePill=(!ok||s[1]!=='good')?'<span class="pill '+s[1]+'">'+esc(s[0])+'</span>':'';
-      return '<li'+(mine?' class="me"':'')+'><span><b>'+esc(full(o))+'</b>'+(sub?'<span class="r-sub">'+esc(sub)+'</span>':'')+'</span><span class="b-st">'+leavePill+(ok?attPart(it,mine):'')+'</span></li>';
+      return '<li'+(mine?' class="me"':'')+'><span class="b-nm">'+avatar(o,'sm')+'<span><b>'+esc(full(o))+'</b>'+(sub?'<span class="r-sub">'+esc(sub)+'</span>':'')+'</span></span><span class="b-st">'+leavePill+(ok?attPart(it,mine):'')+'</span></li>';
     }).join('')+'</ul></section>';
 }
 const tile=(icon,title,sub,act,id,badge,cls)=>'<button class="tile'+(cls?' '+cls:'')+'" type="button" data-act="'+act+'"'+(id?' data-id="'+id+'"':'')+'><span class="ti">'+ic(icon)+'</span><b>'+title+'</b><small>'+sub+'</small>'+(badge?'<span class="badge">'+badge+'</span>':'')+'</button>';
@@ -130,6 +134,74 @@ function officerMine(){
   '<section class="card"><div class="card-head"><h2>ປະຫວັດໃບລາ</h2><p class="muted">'+mine.length+' ລາຍການ · ກົດເພື່ອເບິ່ງໃບລາ ຫຼື ສົ່ງອອກເປັນຮູບພາບ</p></div>'+
   (mine.length?'<ul class="list">'+mine.map(r=>itemRow(r,false)).join('')+'</ul>':empty('ຍັງບໍ່ມີໃບລາ'))+'</section>';
 }
+
+/* ---------- ຕັ້ງຄ່າ: ລາຍຊື່ເຈົ້າໜ້າທີ່ (ມີຮູບ) ---------- */
+function photoPick(o){
+  const p=photoOf(o);
+  return '<label class="ph-pick" title="'+(p?'ປ່ຽນຮູບ':'ເພີ່ມຮູບ')+'">'+avatar(o,'lg')+'<span class="ph-cam">'+ic('cam')+'</span><input type="file" accept="image/*" data-photo="'+esc(o.id)+'" aria-label="'+(p?'ປ່ຽນຮູບ ':'ເພີ່ມຮູບ ')+esc(full(o))+'"></label>';
+}
+function headStaff(){
+  const act=actives(),s=state.settings;
+  return '<section class="card"><div class="card-head"><h2>ລາຍຊື່ເຈົ້າໜ້າທີ່ຕຳຫຼວດ</h2><p class="muted">'+act.length+' ທ່ານ · ກົດທີ່ຮູບເພື່ອເພີ່ມ ຫຼື ປ່ຽນຮູບ · ລົບອອກຈາກລາຍຊື່ແລ້ວ ປະຫວັດການລາຍັງເກັບໄວ້</p></div>'+
+  '<ul class="list">'+act.map(o=>'<li class="staff"><div class="st-who">'+photoPick(o)+'<div><b>'+esc(full(o))+'</b><span class="r-sub">'+esc(o.phone||'—')+'</span>'+
+    (photoOf(o)?'<button class="linkbtn" type="button" data-act="staff-photo-del" data-id="'+esc(o.id)+'">ລົບຮູບ</button>':'<span class="r-sub ph-hint">ຍັງບໍ່ມີຮູບ</span>')+'</div></div>'+
+    (ui.confirmDel===o.id?'<div class="actions"><span class="form-msg bad">ລົບ '+esc(full(o))+' ອອກຈາກລາຍຊື່?</span><button class="btn danger sm" type="button" data-act="staff-del" data-id="'+o.id+'">ຢືນຢັນລົບ</button><button class="btn ghost sm" type="button" data-act="staff-del-cancel">ຍົກເລີກ</button></div>'
+    :'<button class="btn ghost sm" type="button" data-act="staff-del-ask" data-id="'+o.id+'">ລົບອອກ</button>')+'</li>').join('')+'</ul>'+
+  '<div class="subform" style="margin:14px 0 0"><b>ເພີ່ມເຈົ້າໜ້າທີ່ໃໝ່</b><div class="st-new">'+
+    '<div class="ph-new"><label class="ph-pick" title="ເລືອກຮູບ"><span class="avatar lg'+(ui.newPhoto?' has-ph':'')+'" id="st-ph-prev">'+(ui.newPhoto?'<img src="'+esc(ui.newPhoto)+'" alt="">':ic('cam'))+'</span><input type="file" accept="image/*" data-photo="__new" aria-label="ເລືອກຮູບເຈົ້າໜ້າທີ່"></label>'+
+      '<span class="ph-lbl">ຮູບ</span><button class="linkbtn" type="button" id="st-ph-clear" data-act="st-ph-clear"'+(ui.newPhoto?'':' hidden')+'>ລົບຮູບ</button></div>'+
+    '<div class="row">'+
+    '<div class="field"><label for="st-rank">ຍົດ</label><input id="st-rank" placeholder="ເຊັ່ນ ສທ, ພັຕ"></div>'+
+    '<div class="field"><label for="st-name">ຊື່ ແລະ ນາມສະກຸນ</label><input id="st-name"></div>'+
+    '<div class="field"><label for="st-phone">ເບີໂທ</label><input id="st-phone" inputmode="tel"></div></div></div>'+
+    '<p class="form-msg" id="st-msg" role="status"></p><div class="actions"><button class="btn primary" type="button" data-act="staff-add">ເພີ່ມເຂົ້າລາຍຊື່</button></div></div></section>'+
+  '<section class="card"><div class="card-head"><h2>ຕັ້ງຄ່າ</h2><p class="muted">ເບີໂທຂອງຫົວໜ້າໜ່ວຍບໍລິການ (ເກັບໄວ້ໃນລະບົບ · ບໍ່ສະແດງໃນໜ້າຕຳຫຼວດ)</p></div><div class="row">'+
+    '<div class="field"><label for="set-phone">ເບີໂທແຈ້ງລາສຸກເສີນ (ຫົວໜ້າໜ່ວຍ)</label><input id="set-phone" inputmode="tel" value="'+esc(s.unitPhone)+'" placeholder="020 …"></div>'+
+    '<div class="field"><label for="set-pass">ລະຫັດ admin ໃໝ່ (ປ່ອຍຫວ່າງ = ບໍ່ປ່ຽນ)</label><input id="set-pass" type="password" autocomplete="new-password" placeholder="ຢ່າງໜ້ອຍ 4 ຕົວ"></div></div>'+
+    '<p class="form-msg" id="set-msg" role="status"></p><div class="actions"><button class="btn primary" type="button" data-act="settings-save">ບັນທຶກການຕັ້ງຄ່າ</button></div></section>';
+}
+/* resize + square-crop a chosen picture in the browser: ~200x200 JPEG, small enough for one sheet cell */
+function shrinkPhoto(file){
+  return new Promise((res,rej)=>{
+    if(!file||(file.type&&!/^image\//.test(file.type))){rej(new Error('ກະລຸນາເລືອກໄຟລ໌ຮູບພາບ'));return;}
+    const url=URL.createObjectURL(file),img=new Image();
+    img.onload=()=>{
+      const S=200,c=document.createElement('canvas'),g=c.getContext('2d');c.width=c.height=S;
+      const w=img.naturalWidth,h=img.naturalHeight,k=Math.min(w,h);
+      g.fillStyle='#fff';g.fillRect(0,0,S,S);
+      g.drawImage(img,(w-k)/2,(h-k)/2*0.6,k,k,0,0,S,S); /* tall photos: keep a bit more of the top (face) */
+      URL.revokeObjectURL(url);
+      let q=0.85,d=c.toDataURL('image/jpeg',q);
+      while(d.length>40000&&q>0.35){q-=0.1;d=c.toDataURL('image/jpeg',q);}
+      res(d);
+    };
+    img.onerror=()=>{URL.revokeObjectURL(url);rej(new Error('ອ່ານຮູບນີ້ບໍ່ໄດ້: ລອງເລືອກຮູບ JPG ຫຼື PNG'));};
+    img.src=url;
+  });
+}
+/* re-render without losing what was typed in the add-officer form */
+function renderKeepStaff(){
+  const keep=['st-rank','st-name','st-phone','set-phone'].map(i=>[i,($('#'+i)||{}).value]);
+  render();
+  keep.forEach(x=>{const el=$('#'+x[0]);if(el&&x[1]!=null)el.value=x[1];});
+}
+document.addEventListener('change',e=>{
+  const el=e.target;
+  if(!el.matches||!el.matches('input[type="file"][data-photo]'))return;
+  const id=el.dataset.photo,f=el.files&&el.files[0];
+  if(!f)return;
+  shrinkPhoto(f).then(p=>{
+    el.value='';
+    if(id==='__new'){
+      ui.newPhoto=p;
+      const v=$('#st-ph-prev');if(v){v.innerHTML='<img src="'+p+'" alt="">';v.classList.add('has-ph');}
+      const c=$('#st-ph-clear');if(c)c.hidden=false;
+      return;
+    }
+    const o=off(id);
+    return api('staffPhoto',{id:id,photo:p}).then(()=>{renderKeepStaff();toast('ບັນທຶກຮູບ '+full(o)+' ແລ້ວ');});
+  }).catch(err=>{el.value='';fail(err);});
+});
 
 /* ---------- routing ---------- */
 function tabsFor(head){
@@ -256,10 +328,19 @@ const H={
     const o=off(id);
     api('staffDel',{id:id},b).then(()=>{ui.confirmDel=null;ensureMe();if(String(draft.officerId)===String(id)||String(draft.handoverTo)===String(id))draft=newDraft();render();toast('ລົບ '+full(o)+' ອອກຈາກລາຍຊື່ແລ້ວ');}).catch(e=>{ui.confirmDel=null;render();fail(e);});
   },
+  'staff-photo-del':(id,b)=>{
+    const o=off(id);
+    api('staffPhoto',{id:id,photo:''},b).then(()=>{renderKeepStaff();toast('ລົບຮູບ '+full(o)+' ແລ້ວ');}).catch(e=>fail(e));
+  },
+  'st-ph-clear':()=>{
+    ui.newPhoto='';
+    const v=$('#st-ph-prev');if(v){v.innerHTML=ic('cam');v.classList.remove('has-ph');}
+    const c=$('#st-ph-clear');if(c)c.hidden=true;
+  },
   'staff-add':(id,b)=>{
     const rank=$('#st-rank').value.trim(),name=$('#st-name').value.trim(),phone=$('#st-phone').value.trim(),m=$('#st-msg');
     if(!name||!phone){m.textContent='ກະລຸນາໃສ່ຊື່ ແລະ ເບີໂທ.';m.className='form-msg bad';return;}
-    api('staffAdd',{rank:rank,name:name,phone:phone},b).then(()=>{render();toast('ເພີ່ມ '+(rank?rank+' ':'')+name+' ແລ້ວ');}).catch(e=>fail(e,m));
+    api('staffAdd',{rank:rank,name:name,phone:phone,photo:ui.newPhoto||''},b).then(()=>{ui.newPhoto='';render();toast('ເພີ່ມ '+(rank?rank+' ':'')+name+' ແລ້ວ');}).catch(e=>fail(e,m));
   },
   'settings-save':(id,b)=>{
     const p=$('#set-phone').value.trim(),pw=$('#set-pass').value,m=$('#set-msg');

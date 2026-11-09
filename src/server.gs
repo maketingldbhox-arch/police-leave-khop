@@ -7,6 +7,7 @@
 var LEAVE_SS_ID = '1P-q_IduI3M1tsbF0l4zLtPc4XySPgcnOr5hJB9vEL-g';
 var LEAVE_LOG_SHEET = 'ບັນທຶກການລາ';
 var LEAVE_DB_SHEET = 'LeaveDB';
+var LEAVE_PHOTO_SHEET = 'LeavePhotos'; // A = officer id, B = photo (data URL) · hidden
 var LEAVE_TZ = 'Asia/Vientiane';
 var LEAVE_COLS = 28; // A..AB, AB = JSON data
 
@@ -57,6 +58,7 @@ function leaveApi(reqJson) {
         }
         var res = leaveCore_(store, action, data, leaveNow_(), authed);
         if (res.meta) leaveWriteMeta_(store);
+        if (res.photos && res.photos.length) leaveWritePhotos_(store, res.photos);
         (res.changed || []).forEach(function (id) { leaveWriteRecord_(store, lvGet_(store, id)); });
         SpreadsheetApp.flush();
         out.id = res.id;
@@ -107,7 +109,33 @@ function leaveReadStore_() {
   }
   var settings = meta.settings || {unitPhone: ''};
   if (!settings.unitPhone) settings.unitPhone = PropertiesService.getScriptProperties().getProperty('LEAVE_UNIT_PHONE') || ''; // from the older leave version
-  return {officers: meta.officers, settings: settings, seq: meta.seq || {}, records: records};
+  return {officers: meta.officers, settings: settings, seq: meta.seq || {}, records: records, photos: leaveReadPhotos_()};
+}
+/* officer photos live in their own hidden sheet: one row per officer, so LeaveDB!A1 stays small */
+function leavePhotoSheet_() {
+  var ss = leaveSS_(), sh = ss.getSheetByName(LEAVE_PHOTO_SHEET);
+  if (!sh) {
+    sh = ss.insertSheet(LEAVE_PHOTO_SHEET);
+    sh.getRange(1, 1, 1, 3).setValues([['ID ເຈົ້າໜ້າທີ່', 'ຮູບ (ລະບົບ · ຫ້າມແກ້)', 'ອັບເດດ']]).setFontWeight('bold');
+    sh.hideSheet();
+  }
+  return sh;
+}
+function leaveReadPhotos_() {
+  var sh = leaveSS_().getSheetByName(LEAVE_PHOTO_SHEET), out = {};
+  if (!sh || sh.getLastRow() < 2) return out;
+  sh.getRange(2, 1, sh.getLastRow() - 1, 2).getValues().forEach(function (v) { if (v[0] && v[1]) out[String(v[0])] = String(v[1]); });
+  return out;
+}
+function leaveWritePhotos_(store, ids) {
+  var sh = leavePhotoSheet_(), last = sh.getLastRow();
+  var col = last >= 2 ? sh.getRange(2, 1, last - 1, 1).getValues().map(function (v) { return String(v[0]); }) : [];
+  ids.forEach(function (id) {
+    id = String(id);
+    var p = (store.photos || {})[id] || '', i = col.indexOf(id);
+    if (i >= 0) sh.getRange(i + 2, 2, 1, 2).setValues([[p, p ? leaveNow_().replace('T', ' ') : '']]);
+    else if (p) { sh.appendRow([id, p, leaveNow_().replace('T', ' ')]); col.push(id); }
+  });
 }
 function leaveWriteMeta_(store) {
   leaveSheet_(LEAVE_DB_SHEET).getRange('A1').setValue(JSON.stringify({officers: store.officers, settings: store.settings, seq: store.seq}));
@@ -153,6 +181,7 @@ function leaveWriteRecord_(store, r) {
 function leaveClientData_(store, authed) {
   return {
     officers: store.officers,
+    photos: store.photos || {},
     settings: {unitPhone: (store.settings || {}).unitPhone || '', passIsDefault: leaveAdminHash_() === leaveHash_('1234')},
     records: store.records,
     authed: !!authed,

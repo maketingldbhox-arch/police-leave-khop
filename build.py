@@ -21,7 +21,7 @@ segB, k = re.subn(r"function hotline\(\)\{.*?\n\}\n", "", segB, flags=re.S); ass
 segB = rep(segB, "return hotline()+'<form", "return '<form")
 segB, k = re.subn(r"function officerMine\(\)\{.*?\n\}\n", "", segB, flags=re.S); assert k == 1
 assert 'hotline' not in segB
-segB = rep(segB, "ເບີໂທນີ້ຈະສະແດງໃຫ້ຕຳຫຼວດເຫັນ ເພື່ອໂທແຈ້ງລາສຸກເສີນ", "ເບີໂທຂອງຫົວໜ້າໜ່ວຍບໍລິການ (ເກັບໄວ້ໃນລະບົບ · ບໍ່ສະແດງໃນໜ້າຕຳຫຼວດ)")
+segB, k = re.subn(r"function headStaff\(\)\{.*?\n\}(?=\n|$)", "", segB, flags=re.S); assert k == 1
 # ids may be numbers-as-strings from the attendance system: compare loosely as strings
 segA = rep(segA, "const off=id=>state.officers.find(o=>o.id===id)", "const off=id=>state.officers.find(o=>String(o.id)===String(id))")
 segB = segB.replace("r.officerId===state.me", "String(r.officerId)===String(state.me)")

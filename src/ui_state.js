@@ -41,9 +41,9 @@ if(!/^https:/.test(BASE_URL))BASE_URL='https://script.google.com/macros/s/AKfycb
 const SHEET_URL='https://docs.google.com/spreadsheets/d/1P-q_IduI3M1tsbF0l4zLtPc4XySPgcnOr5hJB9vEL-g/edit#gid=7100001';
 function loadPrefs(){try{const p=JSON.parse(localStorage.getItem(PREF_KEY));if(p&&p.tab)return p;}catch(e){}return {chosen:false,role:'officer',me:'',tab:{officer:'home',head:'home'}};}
 const prefs=loadPrefs();
-let state={officers:[],settings:{unitPhone:'',passIsDefault:false},records:[],role:prefs.role,me:prefs.me,tab:prefs.tab};
+let state={officers:[],photos:{},settings:{unitPhone:'',passIsDefault:false},records:[],role:prefs.role,me:prefs.me,tab:prefs.tab};
 function save(){prefs.role=state.role;prefs.me=state.me;prefs.tab=state.tab;try{localStorage.setItem(PREF_KEY,JSON.stringify(prefs));}catch(e){}}
-const ui={phoneOpen:false,month:null,headAuthed:false,confirmDel:null,loaded:false,loadErr:'',busy:0,att:null,mineRange:'year'};
+const ui={newPhoto:'',phoneOpen:false,month:null,headAuthed:false,confirmDel:null,loaded:false,loadErr:'',busy:0,att:null,mineRange:'year'};
 try{ui.token=sessionStorage.getItem(TOK_KEY)||'';}catch(e){ui.token='';}
 const pendUI={};
 function ensureMe(){if(!actives().find(o=>String(o.id)===String(state.me))){const a=actives()[0];state.me=a?a.id:'';}}
@@ -67,7 +67,7 @@ function demoCall(req){
         out.id=leaveCore_(demo.store,a,d,nowL(),authed).id;
       }
       const s=demo.store;
-      out.data={officers:s.officers,settings:{unitPhone:s.settings.unitPhone||'',passIsDefault:demo.pass==='1234'},records:s.records,authed:authed};
+      out.data={officers:s.officers,photos:s.photos||{},settings:{unitPhone:s.settings.unitPhone||'',passIsDefault:demo.pass==='1234'},records:s.records,authed:authed};
       if(a==='load')out.att=demoAtt();
       res(JSON.parse(JSON.stringify(out)));
     }catch(e){res({ok:false,err:String(e&&e.message||e)});}
@@ -80,7 +80,7 @@ function setBusy(d){ui.busy=Math.max(0,ui.busy+d);$('#busy').hidden=!ui.busy;con
 function setToken(t){ui.token=t||'';ui.headAuthed=!!t;try{t?sessionStorage.setItem(TOK_KEY,t):sessionStorage.removeItem(TOK_KEY);}catch(e){}}
 function applyData(d){
   if(!d)return;
-  state.officers=d.officers||[];state.settings=d.settings||{};state.records=d.records||[];
+  state.officers=d.officers||[];state.photos=d.photos||{};state.settings=d.settings||{};state.records=d.records||[];
   if(!d.authed&&ui.token)setToken('');
   ui.headAuthed=!!d.authed;ui.loaded=true;ui.loadErr='';
 }

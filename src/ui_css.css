@@ -102,3 +102,30 @@ main{padding-block:14px 24px}
 .sum-foot{margin:12px 0 0;font-size:14px;color:var(--muted)}
 .sum-foot b{color:var(--fg)}
 @media (max-width:380px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* officer photos */
+.avatar{overflow:hidden}
+.avatar.has-ph{background:var(--surface-2)}
+.avatar img{width:100%;height:100%;object-fit:cover;display:block}
+.avatar.sm{width:34px;height:34px;font-size:14px}
+.avatar.lg{width:56px;height:56px;font-size:20px}
+.avatar.lg svg{width:24px;height:24px}
+.board .b-nm{display:flex;align-items:center;gap:10px;min-width:0}
+.staff>div.st-who{display:flex}
+.st-who{display:flex;align-items:center;gap:12px;min-width:0}
+.st-who .r-sub{display:block}
+.ph-pick{position:relative;display:inline-block;cursor:pointer;border-radius:50%;flex:none}
+.ph-pick input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.ph-pick:focus-within{outline:3px solid var(--accent);outline-offset:2px}
+.ph-pick:hover .avatar{box-shadow:0 0 0 2px var(--accent)}
+.ph-cam{position:absolute;right:-2px;bottom:-2px;width:22px;height:22px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;border:2px solid var(--surface)}
+.ph-cam svg{width:12px;height:12px}
+.ph-hint{font-size:12.5px}
+.linkbtn{all:unset;cursor:pointer;color:var(--accent);font-size:13px;font-weight:600;text-decoration:underline;margin-top:2px;display:inline-block}
+.linkbtn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.st-new{display:flex;gap:14px;align-items:flex-start}
+.st-new .row{flex:1;min-width:0}
+.ph-new{display:grid;justify-items:center;gap:2px;padding-top:4px}
+.ph-new .avatar.lg{border:2px dashed var(--line);background:var(--surface)}
+.ph-new .avatar.lg.has-ph{border-style:solid}
+.ph-lbl{font-size:12.5px;color:var(--muted)}

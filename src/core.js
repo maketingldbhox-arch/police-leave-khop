@@ -56,6 +56,14 @@ function lvNextNo_(store, at) {
   store.seq[y] = (store.seq[y] || 0) + 1;
   return ('00' + store.seq[y]).slice(-3) + '/ລພ.ໜບຄ';
 }
+/* officer photo: small JPEG data URL made in the browser (about 200x200 px), or '' to remove */
+var LV_PHOTO_MAX = 45000;
+function lvPhoto_(p) {
+  p = String(p || '');
+  if (!p) return '';
+  if (p.length > LV_PHOTO_MAX || !/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+\/=]+$/.test(p)) throw new Error('ຮູບພາບບໍ່ຖືກຕ້ອງ ຫຼື ໃຫຍ່ເກີນໄປ');
+  return p;
+}
 function lvUid_() { return 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
 function lvOff_(store, id) {
   for (var i = 0; i < store.officers.length; i++) if (String(store.officers[i].id) === String(id)) return store.officers[i];
@@ -165,8 +173,19 @@ function leaveCore_(store, action, data, now, authed) {
       head();
       var name = String(data.name || '').trim(), phone = String(data.phone || '').trim();
       if (!name || !phone) throw new Error('ກະລຸນາໃສ່ຊື່ ແລະ ເບີໂທ');
-      store.officers.push({id: 'o' + Date.now().toString(36), rank: String(data.rank || '').trim(), name: name, phone: phone, active: true});
-      return {changed: [], meta: true};
+      var nid = 'o' + Date.now().toString(36), np = lvPhoto_(data.photo);
+      store.officers.push({id: nid, rank: String(data.rank || '').trim(), name: name, phone: phone, active: true});
+      if (np) { store.photos = store.photos || {}; store.photos[nid] = np; }
+      return {changed: [], meta: true, photos: np ? [nid] : []};
+    }
+    case 'staffPhoto': {
+      head();
+      o = lvOff_(store, data.id);
+      if (!o) throw new Error('ບໍ່ພົບລາຍຊື່');
+      var ph = lvPhoto_(data.photo);
+      store.photos = store.photos || {};
+      if (ph) store.photos[String(o.id)] = ph; else delete store.photos[String(o.id)];
+      return {changed: [], photos: [String(o.id)]};
     }
     case 'staffDel': {
       head();

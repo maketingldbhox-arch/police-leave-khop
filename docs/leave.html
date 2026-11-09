@@ -326,6 +326,33 @@ main{padding-block:14px 24px}
 .sum-foot b{color:var(--fg)}
 @media (max-width:380px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
 
+/* officer photos */
+.avatar{overflow:hidden}
+.avatar.has-ph{background:var(--surface-2)}
+.avatar img{width:100%;height:100%;object-fit:cover;display:block}
+.avatar.sm{width:34px;height:34px;font-size:14px}
+.avatar.lg{width:56px;height:56px;font-size:20px}
+.avatar.lg svg{width:24px;height:24px}
+.board .b-nm{display:flex;align-items:center;gap:10px;min-width:0}
+.staff>div.st-who{display:flex}
+.st-who{display:flex;align-items:center;gap:12px;min-width:0}
+.st-who .r-sub{display:block}
+.ph-pick{position:relative;display:inline-block;cursor:pointer;border-radius:50%;flex:none}
+.ph-pick input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.ph-pick:focus-within{outline:3px solid var(--accent);outline-offset:2px}
+.ph-pick:hover .avatar{box-shadow:0 0 0 2px var(--accent)}
+.ph-cam{position:absolute;right:-2px;bottom:-2px;width:22px;height:22px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;border:2px solid var(--surface)}
+.ph-cam svg{width:12px;height:12px}
+.ph-hint{font-size:12.5px}
+.linkbtn{all:unset;cursor:pointer;color:var(--accent);font-size:13px;font-weight:600;text-decoration:underline;margin-top:2px;display:inline-block}
+.linkbtn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.st-new{display:flex;gap:14px;align-items:flex-start}
+.st-new .row{flex:1;min-width:0}
+.ph-new{display:grid;justify-items:center;gap:2px;padding-top:4px}
+.ph-new .avatar.lg{border:2px dashed var(--line);background:var(--surface)}
+.ph-new .avatar.lg.has-ph{border-style:solid}
+.ph-lbl{font-size:12.5px;color:var(--muted)}
+
 </style>
 <link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
 <link rel="icon" type="image/svg+xml" href="img/logo.svg">
@@ -457,6 +484,14 @@ function lvNextNo_(store, at) {
   store.seq[y] = (store.seq[y] || 0) + 1;
   return ('00' + store.seq[y]).slice(-3) + '/ລພ.ໜບຄ';
 }
+/* officer photo: small JPEG data URL made in the browser (about 200x200 px), or '' to remove */
+var LV_PHOTO_MAX = 45000;
+function lvPhoto_(p) {
+  p = String(p || '');
+  if (!p) return '';
+  if (p.length > LV_PHOTO_MAX || !/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+\/=]+$/.test(p)) throw new Error('ຮູບພາບບໍ່ຖືກຕ້ອງ ຫຼື ໃຫຍ່ເກີນໄປ');
+  return p;
+}
 function lvUid_() { return 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
 function lvOff_(store, id) {
   for (var i = 0; i < store.officers.length; i++) if (String(store.officers[i].id) === String(id)) return store.officers[i];
@@ -566,8 +601,19 @@ function leaveCore_(store, action, data, now, authed) {
       head();
       var name = String(data.name || '').trim(), phone = String(data.phone || '').trim();
       if (!name || !phone) throw new Error('ກະລຸນາໃສ່ຊື່ ແລະ ເບີໂທ');
-      store.officers.push({id: 'o' + Date.now().toString(36), rank: String(data.rank || '').trim(), name: name, phone: phone, active: true});
-      return {changed: [], meta: true};
+      var nid = 'o' + Date.now().toString(36), np = lvPhoto_(data.photo);
+      store.officers.push({id: nid, rank: String(data.rank || '').trim(), name: name, phone: phone, active: true});
+      if (np) { store.photos = store.photos || {}; store.photos[nid] = np; }
+      return {changed: [], meta: true, photos: np ? [nid] : []};
+    }
+    case 'staffPhoto': {
+      head();
+      o = lvOff_(store, data.id);
+      if (!o) throw new Error('ບໍ່ພົບລາຍຊື່');
+      var ph = lvPhoto_(data.photo);
+      store.photos = store.photos || {};
+      if (ph) store.photos[String(o.id)] = ph; else delete store.photos[String(o.id)];
+      return {changed: [], photos: [String(o.id)]};
     }
     case 'staffDel': {
       head();
@@ -783,9 +829,9 @@ if(!/^https:/.test(BASE_URL))BASE_URL='https://script.google.com/macros/s/AKfycb
 const SHEET_URL='https://docs.google.com/spreadsheets/d/1P-q_IduI3M1tsbF0l4zLtPc4XySPgcnOr5hJB9vEL-g/edit#gid=7100001';
 function loadPrefs(){try{const p=JSON.parse(localStorage.getItem(PREF_KEY));if(p&&p.tab)return p;}catch(e){}return {chosen:false,role:'officer',me:'',tab:{officer:'home',head:'home'}};}
 const prefs=loadPrefs();
-let state={officers:[],settings:{unitPhone:'',passIsDefault:false},records:[],role:prefs.role,me:prefs.me,tab:prefs.tab};
+let state={officers:[],photos:{},settings:{unitPhone:'',passIsDefault:false},records:[],role:prefs.role,me:prefs.me,tab:prefs.tab};
 function save(){prefs.role=state.role;prefs.me=state.me;prefs.tab=state.tab;try{localStorage.setItem(PREF_KEY,JSON.stringify(prefs));}catch(e){}}
-const ui={phoneOpen:false,month:null,headAuthed:false,confirmDel:null,loaded:false,loadErr:'',busy:0,att:null,mineRange:'year'};
+const ui={newPhoto:'',phoneOpen:false,month:null,headAuthed:false,confirmDel:null,loaded:false,loadErr:'',busy:0,att:null,mineRange:'year'};
 try{ui.token=sessionStorage.getItem(TOK_KEY)||'';}catch(e){ui.token='';}
 const pendUI={};
 function ensureMe(){if(!actives().find(o=>String(o.id)===String(state.me))){const a=actives()[0];state.me=a?a.id:'';}}
@@ -809,7 +855,7 @@ function demoCall(req){
         out.id=leaveCore_(demo.store,a,d,nowL(),authed).id;
       }
       const s=demo.store;
-      out.data={officers:s.officers,settings:{unitPhone:s.settings.unitPhone||'',passIsDefault:demo.pass==='1234'},records:s.records,authed:authed};
+      out.data={officers:s.officers,photos:s.photos||{},settings:{unitPhone:s.settings.unitPhone||'',passIsDefault:demo.pass==='1234'},records:s.records,authed:authed};
       if(a==='load')out.att=demoAtt();
       res(JSON.parse(JSON.stringify(out)));
     }catch(e){res({ok:false,err:String(e&&e.message||e)});}
@@ -822,7 +868,7 @@ function setBusy(d){ui.busy=Math.max(0,ui.busy+d);$('#busy').hidden=!ui.busy;con
 function setToken(t){ui.token=t||'';ui.headAuthed=!!t;try{t?sessionStorage.setItem(TOK_KEY,t):sessionStorage.removeItem(TOK_KEY);}catch(e){}}
 function applyData(d){
   if(!d)return;
-  state.officers=d.officers||[];state.settings=d.settings||{};state.records=d.records||[];
+  state.officers=d.officers||[];state.photos=d.photos||{};state.settings=d.settings||{};state.records=d.records||[];
   if(!d.authed&&ui.token)setToken('');
   ui.headAuthed=!!d.authed;ui.loaded=true;ui.loadErr='';
 }
@@ -1028,22 +1074,7 @@ function headRegister(){
   '<h3 class="sec">ລາຍການໃບລາ ('+d.inM.length+')</h3>'+(d.inM.length?recordsTable(d.inM,true):empty('ບໍ່ມີໃບລາໃນເດືອນນີ້'))+
   '</section>';
 }
-function headStaff(){
-  const act=actives(),s=state.settings;
-  return '<section class="card"><div class="card-head"><h2>ລາຍຊື່ເຈົ້າໜ້າທີ່ຕຳຫຼວດ</h2><p class="muted">'+act.length+' ທ່ານ · ລົບອອກຈາກລາຍຊື່ແລ້ວ ປະຫວັດການລາຍັງເກັບໄວ້</p></div>'+
-  '<ul class="list">'+act.map(o=>'<li class="staff"><div><b>'+esc(full(o))+'</b><span class="r-sub">'+esc(o.phone||'—')+'</span></div>'+
-    (ui.confirmDel===o.id?'<div class="actions"><span class="form-msg bad">ລົບ '+esc(full(o))+' ອອກຈາກລາຍຊື່?</span><button class="btn danger sm" type="button" data-act="staff-del" data-id="'+o.id+'">ຢືນຢັນລົບ</button><button class="btn ghost sm" type="button" data-act="staff-del-cancel">ຍົກເລີກ</button></div>'
-    :'<button class="btn ghost sm" type="button" data-act="staff-del-ask" data-id="'+o.id+'">ລົບອອກ</button>')+'</li>').join('')+'</ul>'+
-  '<div class="subform" style="margin:14px 0 0"><b>ເພີ່ມເຈົ້າໜ້າທີ່ໃໝ່</b><div class="row">'+
-    '<div class="field"><label for="st-rank">ຍົດ</label><input id="st-rank" placeholder="ເຊັ່ນ ສທ, ພັຕ"></div>'+
-    '<div class="field"><label for="st-name">ຊື່ ແລະ ນາມສະກຸນ</label><input id="st-name"></div>'+
-    '<div class="field"><label for="st-phone">ເບີໂທ</label><input id="st-phone" inputmode="tel"></div></div>'+
-    '<p class="form-msg" id="st-msg" role="status"></p><div class="actions"><button class="btn primary" type="button" data-act="staff-add">ເພີ່ມເຂົ້າລາຍຊື່</button></div></div></section>'+
-  '<section class="card"><div class="card-head"><h2>ຕັ້ງຄ່າ</h2><p class="muted">ເບີໂທຂອງຫົວໜ້າໜ່ວຍບໍລິການ (ເກັບໄວ້ໃນລະບົບ · ບໍ່ສະແດງໃນໜ້າຕຳຫຼວດ)</p></div><div class="row">'+
-    '<div class="field"><label for="set-phone">ເບີໂທແຈ້ງລາສຸກເສີນ (ຫົວໜ້າໜ່ວຍ)</label><input id="set-phone" inputmode="tel" value="'+esc(s.unitPhone)+'" placeholder="020 …"></div>'+
-    '<div class="field"><label for="set-pass">ລະຫັດ admin ໃໝ່ (ປ່ອຍຫວ່າງ = ບໍ່ປ່ຽນ)</label><input id="set-pass" type="password" autocomplete="new-password" placeholder="ຢ່າງໜ້ອຍ 4 ຕົວ"></div></div>'+
-    '<p class="form-msg" id="set-msg" role="status"></p><div class="actions"><button class="btn primary" type="button" data-act="settings-save">ບັນທຶກການຕັ້ງຄ່າ</button></div></section>';
-}
+
 /* ---------- icons ---------- */
 const ICON={
   home:'<path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/>',
@@ -1058,22 +1089,26 @@ const ICON={
   back:'<path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/>',
   sheet:'<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M4 9h16M4 15h16M10 3v18"/>',
   refresh:'<path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/>',
-  user:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>'
+  user:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
+  cam:'<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>'
 };
 const ic=k=>'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+ICON[k]+'</svg>';
-const initials=o=>esc((o.name||'?').trim().slice(0,1));
+const initials=o=>esc(((o&&o.name)||'?').trim().slice(0,1));
+/* officer photo (from the hidden LeavePhotos sheet) or the first letter of the name */
+const photoOf=o=>(o&&state.photos&&state.photos[String(o.id)])||'';
+const avatar=(o,cls)=>{const p=photoOf(o);return '<span class="avatar'+(p?' has-ph':'')+(cls?' '+cls:'')+'">'+(p?'<img src="'+esc(p)+'" alt="">':initials(o))+'</span>';};
 
 /* ---------- who are you ---------- */
 function whoView(){
   return '<h2 class="who-h">ທ່ານແມ່ນໃຜ?</h2><p class="who-p">ເລືອກຊື່ຂອງທ່ານ ເພື່ອເລີ່ມໃຊ້ງານ · ເຄື່ອງນີ້ຈະຈື່ໄວ້</p><div class="whos">'+
-    actives().map(o=>'<button class="who-btn" type="button" data-act="pick" data-id="'+esc(o.id)+'"><span class="avatar">'+initials(o)+'</span><span><b>'+esc(full(o))+'</b><span class="r-sub">ຕຳຫຼວດປະຈຳການ · '+esc(o.phone||'')+'</span></span></button>').join('')+
+    actives().map(o=>'<button class="who-btn" type="button" data-act="pick" data-id="'+esc(o.id)+'">'+avatar(o)+'<span><b>'+esc(full(o))+'</b><span class="r-sub">ຕຳຫຼວດປະຈຳການ · '+esc(o.phone||'')+'</span></span></button>').join('')+
     '<button class="who-btn head" type="button" data-act="pick" data-id="__head"><span class="avatar">'+ic('user')+'</span><span><b>ຫົວໜ້າໜ່ວຍບໍລິການ</b><span class="r-sub">ອະນຸມັດ, ຕິດຕາມ ແລະ ສັງລວມການລາ (ຕ້ອງມີລະຫັດ)</span></span></button>'+
     '</div>';
 }
 function userBar(){
   const head=state.role==='head';
   const o=head?null:off(state.me);
-  return '<div class="userbar"><div class="who"><span class="avatar">'+(head?ic('user'):initials(o))+'</span><span class="nm"><b>'+(head?'ຫົວໜ້າໜ່ວຍບໍລິການ':esc(full(o)))+'</b><small>'+(head?(ui.headAuthed?'ເຂົ້າລະບົບແລ້ວ':'ຍັງບໍ່ເຂົ້າລະບົບ'):'ຕຳຫຼວດປະຈຳການ')+'</small></span></div>'+
+  return '<div class="userbar"><div class="who">'+(head?'<span class="avatar">'+ic('user')+'</span>':avatar(o))+'<span class="nm"><b>'+(head?'ຫົວໜ້າໜ່ວຍບໍລິການ':esc(full(o)))+'</b><small>'+(head?(ui.headAuthed?'ເຂົ້າລະບົບແລ້ວ':'ຍັງບໍ່ເຂົ້າລະບົບ'):'ຕຳຫຼວດປະຈຳການ')+'</small></span></div>'+
     '<div class="actions">'+(head&&ui.headAuthed?'<button class="btn ghost sm" type="button" data-act="logout">ອອກຈາກລະບົບ</button>':'')+'<button class="btn ghost sm" type="button" data-act="who">ປ່ຽນຜູ້ໃຊ້</button></div></div>';
 }
 
@@ -1111,7 +1146,7 @@ function board(){
       const s=todayStatus(o),it=by[String(o.id)],mine=off2&&String(o.id)===String(state.me);
       const sub=[s[2],(it&&it.name&&!off2?'ເດືອນນີ້ ປະຈຳການ '+it.month+' ມື້':'')].filter(Boolean).join(' · ');
       const leavePill=(!ok||s[1]!=='good')?'<span class="pill '+s[1]+'">'+esc(s[0])+'</span>':'';
-      return '<li'+(mine?' class="me"':'')+'><span><b>'+esc(full(o))+'</b>'+(sub?'<span class="r-sub">'+esc(sub)+'</span>':'')+'</span><span class="b-st">'+leavePill+(ok?attPart(it,mine):'')+'</span></li>';
+      return '<li'+(mine?' class="me"':'')+'><span class="b-nm">'+avatar(o,'sm')+'<span><b>'+esc(full(o))+'</b>'+(sub?'<span class="r-sub">'+esc(sub)+'</span>':'')+'</span></span><span class="b-st">'+leavePill+(ok?attPart(it,mine):'')+'</span></li>';
     }).join('')+'</ul></section>';
 }
 const tile=(icon,title,sub,act,id,badge,cls)=>'<button class="tile'+(cls?' '+cls:'')+'" type="button" data-act="'+act+'"'+(id?' data-id="'+id+'"':'')+'><span class="ti">'+ic(icon)+'</span><b>'+title+'</b><small>'+sub+'</small>'+(badge?'<span class="badge">'+badge+'</span>':'')+'</button>';
@@ -1176,6 +1211,74 @@ function officerMine(){
   '<section class="card"><div class="card-head"><h2>ປະຫວັດໃບລາ</h2><p class="muted">'+mine.length+' ລາຍການ · ກົດເພື່ອເບິ່ງໃບລາ ຫຼື ສົ່ງອອກເປັນຮູບພາບ</p></div>'+
   (mine.length?'<ul class="list">'+mine.map(r=>itemRow(r,false)).join('')+'</ul>':empty('ຍັງບໍ່ມີໃບລາ'))+'</section>';
 }
+
+/* ---------- ຕັ້ງຄ່າ: ລາຍຊື່ເຈົ້າໜ້າທີ່ (ມີຮູບ) ---------- */
+function photoPick(o){
+  const p=photoOf(o);
+  return '<label class="ph-pick" title="'+(p?'ປ່ຽນຮູບ':'ເພີ່ມຮູບ')+'">'+avatar(o,'lg')+'<span class="ph-cam">'+ic('cam')+'</span><input type="file" accept="image/*" data-photo="'+esc(o.id)+'" aria-label="'+(p?'ປ່ຽນຮູບ ':'ເພີ່ມຮູບ ')+esc(full(o))+'"></label>';
+}
+function headStaff(){
+  const act=actives(),s=state.settings;
+  return '<section class="card"><div class="card-head"><h2>ລາຍຊື່ເຈົ້າໜ້າທີ່ຕຳຫຼວດ</h2><p class="muted">'+act.length+' ທ່ານ · ກົດທີ່ຮູບເພື່ອເພີ່ມ ຫຼື ປ່ຽນຮູບ · ລົບອອກຈາກລາຍຊື່ແລ້ວ ປະຫວັດການລາຍັງເກັບໄວ້</p></div>'+
+  '<ul class="list">'+act.map(o=>'<li class="staff"><div class="st-who">'+photoPick(o)+'<div><b>'+esc(full(o))+'</b><span class="r-sub">'+esc(o.phone||'—')+'</span>'+
+    (photoOf(o)?'<button class="linkbtn" type="button" data-act="staff-photo-del" data-id="'+esc(o.id)+'">ລົບຮູບ</button>':'<span class="r-sub ph-hint">ຍັງບໍ່ມີຮູບ</span>')+'</div></div>'+
+    (ui.confirmDel===o.id?'<div class="actions"><span class="form-msg bad">ລົບ '+esc(full(o))+' ອອກຈາກລາຍຊື່?</span><button class="btn danger sm" type="button" data-act="staff-del" data-id="'+o.id+'">ຢືນຢັນລົບ</button><button class="btn ghost sm" type="button" data-act="staff-del-cancel">ຍົກເລີກ</button></div>'
+    :'<button class="btn ghost sm" type="button" data-act="staff-del-ask" data-id="'+o.id+'">ລົບອອກ</button>')+'</li>').join('')+'</ul>'+
+  '<div class="subform" style="margin:14px 0 0"><b>ເພີ່ມເຈົ້າໜ້າທີ່ໃໝ່</b><div class="st-new">'+
+    '<div class="ph-new"><label class="ph-pick" title="ເລືອກຮູບ"><span class="avatar lg'+(ui.newPhoto?' has-ph':'')+'" id="st-ph-prev">'+(ui.newPhoto?'<img src="'+esc(ui.newPhoto)+'" alt="">':ic('cam'))+'</span><input type="file" accept="image/*" data-photo="__new" aria-label="ເລືອກຮູບເຈົ້າໜ້າທີ່"></label>'+
+      '<span class="ph-lbl">ຮູບ</span><button class="linkbtn" type="button" id="st-ph-clear" data-act="st-ph-clear"'+(ui.newPhoto?'':' hidden')+'>ລົບຮູບ</button></div>'+
+    '<div class="row">'+
+    '<div class="field"><label for="st-rank">ຍົດ</label><input id="st-rank" placeholder="ເຊັ່ນ ສທ, ພັຕ"></div>'+
+    '<div class="field"><label for="st-name">ຊື່ ແລະ ນາມສະກຸນ</label><input id="st-name"></div>'+
+    '<div class="field"><label for="st-phone">ເບີໂທ</label><input id="st-phone" inputmode="tel"></div></div></div>'+
+    '<p class="form-msg" id="st-msg" role="status"></p><div class="actions"><button class="btn primary" type="button" data-act="staff-add">ເພີ່ມເຂົ້າລາຍຊື່</button></div></div></section>'+
+  '<section class="card"><div class="card-head"><h2>ຕັ້ງຄ່າ</h2><p class="muted">ເບີໂທຂອງຫົວໜ້າໜ່ວຍບໍລິການ (ເກັບໄວ້ໃນລະບົບ · ບໍ່ສະແດງໃນໜ້າຕຳຫຼວດ)</p></div><div class="row">'+
+    '<div class="field"><label for="set-phone">ເບີໂທແຈ້ງລາສຸກເສີນ (ຫົວໜ້າໜ່ວຍ)</label><input id="set-phone" inputmode="tel" value="'+esc(s.unitPhone)+'" placeholder="020 …"></div>'+
+    '<div class="field"><label for="set-pass">ລະຫັດ admin ໃໝ່ (ປ່ອຍຫວ່າງ = ບໍ່ປ່ຽນ)</label><input id="set-pass" type="password" autocomplete="new-password" placeholder="ຢ່າງໜ້ອຍ 4 ຕົວ"></div></div>'+
+    '<p class="form-msg" id="set-msg" role="status"></p><div class="actions"><button class="btn primary" type="button" data-act="settings-save">ບັນທຶກການຕັ້ງຄ່າ</button></div></section>';
+}
+/* resize + square-crop a chosen picture in the browser: ~200x200 JPEG, small enough for one sheet cell */
+function shrinkPhoto(file){
+  return new Promise((res,rej)=>{
+    if(!file||(file.type&&!/^image\//.test(file.type))){rej(new Error('ກະລຸນາເລືອກໄຟລ໌ຮູບພາບ'));return;}
+    const url=URL.createObjectURL(file),img=new Image();
+    img.onload=()=>{
+      const S=200,c=document.createElement('canvas'),g=c.getContext('2d');c.width=c.height=S;
+      const w=img.naturalWidth,h=img.naturalHeight,k=Math.min(w,h);
+      g.fillStyle='#fff';g.fillRect(0,0,S,S);
+      g.drawImage(img,(w-k)/2,(h-k)/2*0.6,k,k,0,0,S,S); /* tall photos: keep a bit more of the top (face) */
+      URL.revokeObjectURL(url);
+      let q=0.85,d=c.toDataURL('image/jpeg',q);
+      while(d.length>40000&&q>0.35){q-=0.1;d=c.toDataURL('image/jpeg',q);}
+      res(d);
+    };
+    img.onerror=()=>{URL.revokeObjectURL(url);rej(new Error('ອ່ານຮູບນີ້ບໍ່ໄດ້: ລອງເລືອກຮູບ JPG ຫຼື PNG'));};
+    img.src=url;
+  });
+}
+/* re-render without losing what was typed in the add-officer form */
+function renderKeepStaff(){
+  const keep=['st-rank','st-name','st-phone','set-phone'].map(i=>[i,($('#'+i)||{}).value]);
+  render();
+  keep.forEach(x=>{const el=$('#'+x[0]);if(el&&x[1]!=null)el.value=x[1];});
+}
+document.addEventListener('change',e=>{
+  const el=e.target;
+  if(!el.matches||!el.matches('input[type="file"][data-photo]'))return;
+  const id=el.dataset.photo,f=el.files&&el.files[0];
+  if(!f)return;
+  shrinkPhoto(f).then(p=>{
+    el.value='';
+    if(id==='__new'){
+      ui.newPhoto=p;
+      const v=$('#st-ph-prev');if(v){v.innerHTML='<img src="'+p+'" alt="">';v.classList.add('has-ph');}
+      const c=$('#st-ph-clear');if(c)c.hidden=false;
+      return;
+    }
+    const o=off(id);
+    return api('staffPhoto',{id:id,photo:p}).then(()=>{renderKeepStaff();toast('ບັນທຶກຮູບ '+full(o)+' ແລ້ວ');});
+  }).catch(err=>{el.value='';fail(err);});
+});
 
 /* ---------- routing ---------- */
 function tabsFor(head){
@@ -1302,10 +1405,19 @@ const H={
     const o=off(id);
     api('staffDel',{id:id},b).then(()=>{ui.confirmDel=null;ensureMe();if(String(draft.officerId)===String(id)||String(draft.handoverTo)===String(id))draft=newDraft();render();toast('ລົບ '+full(o)+' ອອກຈາກລາຍຊື່ແລ້ວ');}).catch(e=>{ui.confirmDel=null;render();fail(e);});
   },
+  'staff-photo-del':(id,b)=>{
+    const o=off(id);
+    api('staffPhoto',{id:id,photo:''},b).then(()=>{renderKeepStaff();toast('ລົບຮູບ '+full(o)+' ແລ້ວ');}).catch(e=>fail(e));
+  },
+  'st-ph-clear':()=>{
+    ui.newPhoto='';
+    const v=$('#st-ph-prev');if(v){v.innerHTML=ic('cam');v.classList.remove('has-ph');}
+    const c=$('#st-ph-clear');if(c)c.hidden=true;
+  },
   'staff-add':(id,b)=>{
     const rank=$('#st-rank').value.trim(),name=$('#st-name').value.trim(),phone=$('#st-phone').value.trim(),m=$('#st-msg');
     if(!name||!phone){m.textContent='ກະລຸນາໃສ່ຊື່ ແລະ ເບີໂທ.';m.className='form-msg bad';return;}
-    api('staffAdd',{rank:rank,name:name,phone:phone},b).then(()=>{render();toast('ເພີ່ມ '+(rank?rank+' ':'')+name+' ແລ້ວ');}).catch(e=>fail(e,m));
+    api('staffAdd',{rank:rank,name:name,phone:phone,photo:ui.newPhoto||''},b).then(()=>{ui.newPhoto='';render();toast('ເພີ່ມ '+(rank?rank+' ':'')+name+' ແລ້ວ');}).catch(e=>fail(e,m));
   },
   'settings-save':(id,b)=>{
     const p=$('#set-phone').value.trim(),pw=$('#set-pass').value,m=$('#set-msg');
