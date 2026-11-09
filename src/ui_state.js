@@ -43,13 +43,17 @@ function loadPrefs(){try{const p=JSON.parse(localStorage.getItem(PREF_KEY));if(p
 const prefs=loadPrefs();
 let state={officers:[],settings:{unitPhone:'',passIsDefault:false},records:[],role:prefs.role,me:prefs.me,tab:prefs.tab};
 function save(){prefs.role=state.role;prefs.me=state.me;prefs.tab=state.tab;try{localStorage.setItem(PREF_KEY,JSON.stringify(prefs));}catch(e){}}
-const ui={phoneOpen:false,month:null,headAuthed:false,confirmDel:null,loaded:false,loadErr:'',busy:0};
+const ui={phoneOpen:false,month:null,headAuthed:false,confirmDel:null,loaded:false,loadErr:'',busy:0,att:null,mineRange:'year'};
 try{ui.token=sessionStorage.getItem(TOK_KEY)||'';}catch(e){ui.token='';}
 const pendUI={};
 function ensureMe(){if(!actives().find(o=>String(o.id)===String(state.me))){const a=actives()[0];state.me=a?a.id:'';}}
 
 /* ---------- server calls ---------- */
-const demo={store:null,pass:'1234',toks:{}};
+const demo={store:null,pass:'1234',toks:{},att:{}};
+function demoAtt(){
+  const T=today(),s=demo.store;
+  return {date:T,rate:50000,items:s.officers.filter(o=>o.active).map(o=>{const k=o.id;demo.att[k]=demo.att[k]||{month:7};const p=!!demo.att[k][T];return {id:String(o.id),name:(o.rank?o.rank+' ':'')+o.name,present:p,month:demo.att[k].month+(p?1:0),money:(demo.att[k].month+(p?1:0))*50000};})};
+}
 function demoCall(req){
   return new Promise(res=>setTimeout(()=>{
     try{
@@ -57,12 +61,14 @@ function demoCall(req){
       const a=req.action,d=req.data||{};let authed=!!demo.toks[req.token];const out={ok:true};
       if(a==='login'){if(d.pass!==demo.pass){res({ok:false,err:'ລະຫັດບໍ່ຖືກຕ້ອງ. ລອງໃໝ່ອີກຄັ້ງ.'});return;}const t='t'+Math.random().toString(36).slice(2);demo.toks[t]=1;out.token=t;authed=true;}
       else if(a==='logout'){delete demo.toks[req.token];authed=false;}
+      else if(a==='attCheckin'){const k=d.id;demo.att[k]=demo.att[k]||{month:7};out.already=!!demo.att[k][today()];demo.att[k][today()]=1;out.att=demoAtt();res(JSON.parse(JSON.stringify(out)));return;}
       else if(a!=='load'){
         if(a==='settingsSave'&&d.pass){if(!authed)throw new Error('AUTH');if(String(d.pass).length<4)throw new Error('ລະຫັດຕ້ອງມີຢ່າງໜ້ອຍ 4 ຕົວ');demo.pass=d.pass;}
         out.id=leaveCore_(demo.store,a,d,nowL(),authed).id;
       }
       const s=demo.store;
       out.data={officers:s.officers,settings:{unitPhone:s.settings.unitPhone||'',passIsDefault:demo.pass==='1234'},records:s.records,authed:authed};
+      if(a==='load')out.att=demoAtt();
       res(JSON.parse(JSON.stringify(out)));
     }catch(e){res({ok:false,err:String(e&&e.message||e)});}
   },200));
@@ -93,7 +99,7 @@ function api(action,data,btn){
 }
 function fail(e,msgEl){const t=e&&e.message||String(e);if(msgEl){msgEl.textContent=t;msgEl.className='form-msg bad';}toast(t);}
 function refresh(quiet){
-  return api('load').then(()=>{render();if(!quiet)toast('ອັບເດດຂໍ້ມູນແລ້ວ');}).catch(e=>{if(!ui.loaded){ui.loadErr=e.message;render();}else toast(e.message);});
+  return api('load').then(res=>{ui.att=res.att||{err:'OLD'};render();if(!quiet)toast('ອັບເດດຂໍ້ມູນແລ້ວ');}).catch(e=>{if(!ui.loaded){ui.loadErr=e.message;render();}else toast(e.message);});
 }
 function newDraft(){
   const o=off(state.me),h=actives().find(x=>x.id!==o.id);

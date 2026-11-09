@@ -16,8 +16,12 @@ def rep(s, a, b):
     return s.replace(a, b)
 segB = rep(segB, "(state.settings.adminPass==='1234'?'<p class=\"how\">ຕົວຢ່າງນີ້ໃຊ້ລະຫັດ <b>1234</b>. ປ່ຽນໄດ້ໃນແຖບ ເຈົ້າໜ້າທີ່ ແລະ ຕັ້ງຄ່າ.</p>':'')",
               "(state.settings.passIsDefault?'<p class=\"how\">ລະຫັດເລີ່ມຕົ້ນແມ່ນ <b>1234</b>. ກະລຸນາປ່ຽນໃນແຖບ ຕັ້ງຄ່າ ຫຼັງເຂົ້າລະບົບ.</p>':'')")
-segB = rep(segB, "(p?'<b>'+esc(p)+'</b>':'<span class=\"muted\">ຫົວໜ້າໜ່ວຍຍັງບໍ່ໄດ້ຕັ້ງເບີ (ຕັ້ງໄດ້ໃນ ເຈົ້າໜ້າທີ່ ແລະ ຕັ້ງຄ່າ)</span>')",
-              "(p?'<a class=\"tel\" href=\"tel:'+esc(p.replace(/\\s/g,''))+'\">'+esc(p)+'</a>':'<span class=\"muted\">ຫົວໜ້າໜ່ວຍຍັງບໍ່ໄດ້ຕັ້ງເບີ (ຕັ້ງໄດ້ໃນແຖບ ຕັ້ງຄ່າ)</span>')")
+# no emergency-call strip on the officer pages; officerMine (with the leave summary) lives in src/ui_views.js
+segB, k = re.subn(r"function hotline\(\)\{.*?\n\}\n", "", segB, flags=re.S); assert k == 1
+segB = rep(segB, "return hotline()+'<form", "return '<form")
+segB, k = re.subn(r"function officerMine\(\)\{.*?\n\}\n", "", segB, flags=re.S); assert k == 1
+assert 'hotline' not in segB
+segB = rep(segB, "ເບີໂທນີ້ຈະສະແດງໃຫ້ຕຳຫຼວດເຫັນ ເພື່ອໂທແຈ້ງລາສຸກເສີນ", "ເບີໂທຂອງຫົວໜ້າໜ່ວຍບໍລິການ (ເກັບໄວ້ໃນລະບົບ · ບໍ່ສະແດງໃນໜ້າຕຳຫຼວດ)")
 # ids may be numbers-as-strings from the attendance system: compare loosely as strings
 segA = rep(segA, "const off=id=>state.officers.find(o=>o.id===id)", "const off=id=>state.officers.find(o=>String(o.id)===String(id))")
 segB = segB.replace("r.officerId===state.me", "String(r.officerId)===String(state.me)")

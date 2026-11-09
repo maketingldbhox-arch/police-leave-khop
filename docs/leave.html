@@ -297,6 +297,35 @@ main{padding-block:14px 24px}
 .err-card{border-color:var(--bad)}
 .tile.main .badge{background:#fff;color:var(--accent)}
 
+/* ---- today card with attendance check-in ---- */
+.tiles.one{grid-template-columns:1fr}
+.tiles.one .tile{min-height:0;grid-template-columns:auto 1fr;align-items:center;column-gap:14px}
+.tiles.one .tile small{grid-column:2}
+.tiles.one .tile .ti{grid-row:span 2}
+.att-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.att-top .card-head{margin-bottom:10px}
+.att-clock{font-family:"IBM Plex Mono",ui-monospace,monospace;font-weight:600;font-size:clamp(26px,7vw,34px);line-height:1.1;font-variant-numeric:tabular-nums;color:var(--fg);letter-spacing:.02em}
+.att-me{margin:0 0 10px;padding:8px 12px;border-radius:10px;background:var(--accent-soft);font-size:14.5px}
+.att-note{margin:0 0 10px;font-size:14px}
+.board .b-st{display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:flex-end}
+.board li.me{border-color:var(--accent)}
+.board .pill svg{width:14px;height:14px;vertical-align:-2px}
+.btn.att-in svg{width:18px;height:18px}
+/* ---- my leave summary ---- */
+.sum-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:12px}
+.kpi{display:grid;gap:2px;padding:10px 8px;border-radius:10px;background:var(--bg);border:1px solid var(--line);text-align:center}
+.kpi b{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:24px;line-height:1.1;font-variant-numeric:tabular-nums}
+.kpi span{font-size:12.5px;color:var(--muted);line-height:1.3}
+.kpi.main{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.kpi.main span{color:inherit;opacity:.9}
+.kpi.bad b{color:var(--bad)}
+.bytype{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.bytype li{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:9px 12px;border-radius:10px;background:var(--bg);font-size:14.5px}
+.sum-foot{margin:12px 0 0;font-size:14px;color:var(--muted)}
+.sum-foot b{color:var(--fg)}
+@media (max-width:380px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
 </style>
 <link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
 <link rel="icon" type="image/svg+xml" href="img/logo.svg">
@@ -756,13 +785,17 @@ function loadPrefs(){try{const p=JSON.parse(localStorage.getItem(PREF_KEY));if(p
 const prefs=loadPrefs();
 let state={officers:[],settings:{unitPhone:'',passIsDefault:false},records:[],role:prefs.role,me:prefs.me,tab:prefs.tab};
 function save(){prefs.role=state.role;prefs.me=state.me;prefs.tab=state.tab;try{localStorage.setItem(PREF_KEY,JSON.stringify(prefs));}catch(e){}}
-const ui={phoneOpen:false,month:null,headAuthed:false,confirmDel:null,loaded:false,loadErr:'',busy:0};
+const ui={phoneOpen:false,month:null,headAuthed:false,confirmDel:null,loaded:false,loadErr:'',busy:0,att:null,mineRange:'year'};
 try{ui.token=sessionStorage.getItem(TOK_KEY)||'';}catch(e){ui.token='';}
 const pendUI={};
 function ensureMe(){if(!actives().find(o=>String(o.id)===String(state.me))){const a=actives()[0];state.me=a?a.id:'';}}
 
 /* ---------- server calls ---------- */
-const demo={store:null,pass:'1234',toks:{}};
+const demo={store:null,pass:'1234',toks:{},att:{}};
+function demoAtt(){
+  const T=today(),s=demo.store;
+  return {date:T,rate:50000,items:s.officers.filter(o=>o.active).map(o=>{const k=o.id;demo.att[k]=demo.att[k]||{month:7};const p=!!demo.att[k][T];return {id:String(o.id),name:(o.rank?o.rank+' ':'')+o.name,present:p,month:demo.att[k].month+(p?1:0),money:(demo.att[k].month+(p?1:0))*50000};})};
+}
 function demoCall(req){
   return new Promise(res=>setTimeout(()=>{
     try{
@@ -770,12 +803,14 @@ function demoCall(req){
       const a=req.action,d=req.data||{};let authed=!!demo.toks[req.token];const out={ok:true};
       if(a==='login'){if(d.pass!==demo.pass){res({ok:false,err:'ລະຫັດບໍ່ຖືກຕ້ອງ. ລອງໃໝ່ອີກຄັ້ງ.'});return;}const t='t'+Math.random().toString(36).slice(2);demo.toks[t]=1;out.token=t;authed=true;}
       else if(a==='logout'){delete demo.toks[req.token];authed=false;}
+      else if(a==='attCheckin'){const k=d.id;demo.att[k]=demo.att[k]||{month:7};out.already=!!demo.att[k][today()];demo.att[k][today()]=1;out.att=demoAtt();res(JSON.parse(JSON.stringify(out)));return;}
       else if(a!=='load'){
         if(a==='settingsSave'&&d.pass){if(!authed)throw new Error('AUTH');if(String(d.pass).length<4)throw new Error('ລະຫັດຕ້ອງມີຢ່າງໜ້ອຍ 4 ຕົວ');demo.pass=d.pass;}
         out.id=leaveCore_(demo.store,a,d,nowL(),authed).id;
       }
       const s=demo.store;
       out.data={officers:s.officers,settings:{unitPhone:s.settings.unitPhone||'',passIsDefault:demo.pass==='1234'},records:s.records,authed:authed};
+      if(a==='load')out.att=demoAtt();
       res(JSON.parse(JSON.stringify(out)));
     }catch(e){res({ok:false,err:String(e&&e.message||e)});}
   },200));
@@ -806,7 +841,7 @@ function api(action,data,btn){
 }
 function fail(e,msgEl){const t=e&&e.message||String(e);if(msgEl){msgEl.textContent=t;msgEl.className='form-msg bad';}toast(t);}
 function refresh(quiet){
-  return api('load').then(()=>{render();if(!quiet)toast('ອັບເດດຂໍ້ມູນແລ້ວ');}).catch(e=>{if(!ui.loaded){ui.loadErr=e.message;render();}else toast(e.message);});
+  return api('load').then(res=>{ui.att=res.att||{err:'OLD'};render();if(!quiet)toast('ອັບເດດຂໍ້ມູນແລ້ວ');}).catch(e=>{if(!ui.loaded){ui.loadErr=e.message;render();}else toast(e.message);});
 }
 function newDraft(){
   const o=off(state.me),h=actives().find(x=>x.id!==o.id);
@@ -832,10 +867,6 @@ function dueText(r){
   const d=r.phoneLog.deadline,over=new Date()>new Date(d);
   return '<span class="due'+(over?' over':'')+'">'+(over?'ເກີນກຳນົດຍື່ນໃບລາ: ':'ຕ້ອງຍື່ນໃບລາຍ້ອນຫຼັງກ່ອນ ')+fDT(d)+'</span>';
 }
-function hotline(){
-  const p=state.settings.unitPhone;
-  return '<div class="hotline"><span>ແຈ້ງລາສຸກເສີນ ໂທຫາຫົວໜ້າໜ່ວຍບໍລິການ:</span>'+(p?'<a class="tel" href="tel:'+esc(p.replace(/\s/g,''))+'">'+esc(p)+'</a>':'<span class="muted">ຫົວໜ້າໜ່ວຍຍັງບໍ່ໄດ້ຕັ້ງເບີ (ຕັ້ງໄດ້ໃນແຖບ ຕັ້ງຄ່າ)</span>')+'</div>';
-}
 const canSelfReturn=r=>state.role==='officer'&&String(r.officerId)===String(state.me)&&!r.returnedAt&&((r.status==='approved'&&new Date()>=span(r)[0])||r.status==='phone');
 const unacked=()=>state.records.filter(r=>r.returnBy==='self'&&r.returnAck===false);
 
@@ -844,7 +875,7 @@ function officerNew(){
   const o=off(state.me),d=draft;
   const link=d.linkId?get(d.linkId):null;
   const others=actives().filter(x=>x.id!==o.id);
-  return hotline()+'<form id="lf" class="card form" novalidate>'+
+  return '<form id="lf" class="card form" novalidate>'+
   '<div class="card-head"><h2>ຂຽນໃບຂໍລາພັກ</h2><p class="muted">ຜູ້ຂໍລາ: <b>'+esc(full(o))+'</b> · ປກສ ເມືອງຄອບ</p></div>'+
   (link?'<div class="note">ຍື່ນຍ້ອນຫຼັງ ສຳລັບການແຈ້ງທາງໂທ ວັນທີ '+fD(link.startDate)+' ເວລາ '+esc(link.callTime)+' · '+dueText(link)+'</div>':'')+
   '<fieldset class="field"><legend>ປະເພດການລາ</legend><div class="types">'+Object.keys(TYPES).map(k=>{const t=TYPES[k];return '<label class="type"><input type="radio" name="type" value="'+k+'"'+(d.type===k?' checked':'')+'><span class="code">'+k+'</span><span class="tl">'+t.label+'</span><span class="tn">'+t.note+'</span></label>';}).join('')+'</div></fieldset>'+
@@ -892,17 +923,6 @@ function dyn(){
   const r=draftRec();
   $('#f-period').innerHTML='<b>'+esc(period(r))+'</b> · '+qtyText(r);
   $('#f-checks').innerHTML=checksHTML(checks(r));
-}
-function officerMine(){
-  const now=new Date();
-  const mine=state.records.filter(r=>String(r.officerId)===String(state.me)).sort((a,b)=>b.startDate.localeCompare(a.startDate));
-  const ph=mine.filter(r=>r.status==='phone');
-  const out=mine.filter(r=>r.status==='approved'&&now>=span(r)[0]);
-  return hotline()+
-  out.map(r=>{const er=expRet(r),over=now>er;return '<div class="card alert go"><div><b>'+(over?'ເກີນກຳນົດກັບແລ້ວ':'ກຳລັງລາຢູ່')+'</b> · <span class="no">'+r.no+'</span><p>'+r.type+' '+TYPES[r.type].label+' · '+esc(period(r))+' · ກຳນົດກັບ '+fDate(er)+'</p><p class="muted">ເມື່ອກັບຮອດຫ້ອງການ ກົດ "ກັບຄືນ" ລະບົບຈະບັນທຶກເວລາ ແລະ ແຈ້ງຫົວໜ້າໜ່ວຍບໍລິການ</p></div><div class="actions"><button class="btn primary" type="button" data-act="self-return" data-id="'+r.id+'">ກັບຄືນ</button><button class="btn ghost" type="button" data-act="detail" data-id="'+r.id+'">ເປີດໃບລາ</button></div></div>';}).join('')+
-  ph.map(r=>'<div class="card alert"><div><b>ທ່ານໄດ້ແຈ້ງລາທາງໂທລະສັບ</b><p>'+r.type+' '+TYPES[r.type].label+' · '+esc(period(r))+' · ໂທແຈ້ງ '+esc(r.callTo)+' ເວລາ '+esc(r.callTime)+'</p><p>'+dueText(r)+(r.returnedAt?' · ກັບມາແລ້ວ '+fDT(r.returnedAt):'')+'</p></div><div class="actions">'+(canSelfReturn(r)?'<button class="btn primary" type="button" data-act="self-return" data-id="'+r.id+'">ກັບຄືນ</button>':'')+'<button class="btn '+(canSelfReturn(r)?'ghost':'primary')+'" type="button" data-act="write-retro" data-id="'+r.id+'">ຂຽນໃບລາຍ້ອນຫຼັງ</button></div></div>').join('')+
-  '<section class="card"><div class="card-head"><h2>ໃບລາຂອງຂ້ອຍ</h2><p class="muted">'+mine.length+' ລາຍການ · ກົດເພື່ອເບິ່ງໃບລາ ຫຼື ສົ່ງອອກເປັນຮູບພາບ</p></div>'+
-  (mine.length?'<ul class="list">'+mine.map(r=>itemRow(r,false)).join('')+'</ul>':empty('ຍັງບໍ່ມີໃບລາ'))+'</section>';
 }
 
 /* ---------- head views ---------- */
@@ -1019,7 +1039,7 @@ function headStaff(){
     '<div class="field"><label for="st-name">ຊື່ ແລະ ນາມສະກຸນ</label><input id="st-name"></div>'+
     '<div class="field"><label for="st-phone">ເບີໂທ</label><input id="st-phone" inputmode="tel"></div></div>'+
     '<p class="form-msg" id="st-msg" role="status"></p><div class="actions"><button class="btn primary" type="button" data-act="staff-add">ເພີ່ມເຂົ້າລາຍຊື່</button></div></div></section>'+
-  '<section class="card"><div class="card-head"><h2>ຕັ້ງຄ່າ</h2><p class="muted">ເບີໂທນີ້ຈະສະແດງໃຫ້ຕຳຫຼວດເຫັນ ເພື່ອໂທແຈ້ງລາສຸກເສີນ</p></div><div class="row">'+
+  '<section class="card"><div class="card-head"><h2>ຕັ້ງຄ່າ</h2><p class="muted">ເບີໂທຂອງຫົວໜ້າໜ່ວຍບໍລິການ (ເກັບໄວ້ໃນລະບົບ · ບໍ່ສະແດງໃນໜ້າຕຳຫຼວດ)</p></div><div class="row">'+
     '<div class="field"><label for="set-phone">ເບີໂທແຈ້ງລາສຸກເສີນ (ຫົວໜ້າໜ່ວຍ)</label><input id="set-phone" inputmode="tel" value="'+esc(s.unitPhone)+'" placeholder="020 …"></div>'+
     '<div class="field"><label for="set-pass">ລະຫັດ admin ໃໝ່ (ປ່ອຍຫວ່າງ = ບໍ່ປ່ຽນ)</label><input id="set-pass" type="password" autocomplete="new-password" placeholder="ຢ່າງໜ້ອຍ 4 ຕົວ"></div></div>'+
     '<p class="form-msg" id="set-msg" role="status"></p><div class="actions"><button class="btn primary" type="button" data-act="settings-save">ບັນທຶກການຕັ້ງຄ່າ</button></div></section>';
@@ -1066,9 +1086,33 @@ function todayStatus(o){
   for(const r of rs){if(r.status==='approved'&&iso(span(r)[0])===T&&now<span(r)[0])return ['ປະຈຳການ · ຈະລາ '+hm(span(r)[0]),'accent',r.type+' '+TYPES[r.type].label];}
   return ['ປະຈຳການ','good',''];
 }
+const p2=n=>(n<10?'0':'')+n;
+const clockText=()=>{const d=new Date();return p2(d.getHours())+':'+p2(d.getMinutes())+':'+p2(d.getSeconds());};
+const kip=n=>Math.round(Number(n)||0).toLocaleString('en-US');
+function attPart(it,mine){
+  if(!it)return '';
+  if(!it.name)return '<span class="pill bad">ບໍ່ພົບຊື່ໃນລະບົບປະຈຳການ</span>';
+  if(it.present)return '<span class="pill good">'+ic('check')+' ລົງເວລາແລ້ວ</span>';
+  if(mine)return '<button class="btn primary sm att-in" type="button" data-act="att-in" data-id="'+esc(it.id)+'">'+ic('clock')+' ລົງເວລາເຂົ້າ</button>';
+  return '<span class="pill">ຍັງບໍ່ລົງເວລາ</span>';
+}
 function board(){
-  return '<section class="card"><div class="card-head"><h2>ມື້ນີ້ · ວັນ'+wd(today())+' '+fD(today())+'</h2><p class="muted">ສະຖານະຂອງເຈົ້າໜ້າທີ່ຢູ່ຈຸດປະຈຳການ</p></div><ul class="board">'+
-    actives().map(o=>{const s=todayStatus(o);return '<li><span><b>'+esc(full(o))+'</b>'+(s[2]?'<span class="r-sub">'+esc(s[2])+'</span>':'')+'</span><span class="pill '+s[1]+'">'+esc(s[0])+'</span></li>';}).join('')+'</ul></section>';
+  const a=ui.att,ok=a&&!a.err&&a.items,off2=state.role==='officer';
+  const by={};if(ok)a.items.forEach(it=>{by[String(it.id)]=it;});
+  const me=off2?by[String(state.me)]:null;
+  let note='';
+  if(!a)note='<p class="muted att-note">ກຳລັງໂຫຼດຂໍ້ມູນບັນທຶກປະຈຳການ…</p>';
+  else if(a.err)note='<p class="muted att-note">'+(a.err==='OLD'?'ລະບົບບັນທຶກປະຈຳການຍັງບໍ່ເຊື່ອມ: ຕ້ອງອັບເດດ Leave.gs ໃນ Apps Script':'ໂຫຼດບັນທຶກປະຈຳການບໍ່ໄດ້: '+esc(a.err))+'</p>';
+  return '<section class="card att"><div class="att-top"><div class="card-head"><h2>ບັນທຶກປະຈຳການ · ມື້ນີ້</h2><p class="muted">ວັນ'+wd(today())+' '+fD(today())+'</p></div><div class="att-clock" id="att-clock" aria-label="ເວລາປັດຈຸບັນ">'+clockText()+'</div></div>'+
+    note+
+    (me&&me.name?'<p class="att-me">ເດືອນນີ້ທ່ານປະຈຳການ <b>'+me.month+' ມື້</b> · ອັດຕາກິນ <b>'+kip(me.money)+' ກີບ</b></p>':'')+
+    '<ul class="board">'+
+    actives().map(o=>{
+      const s=todayStatus(o),it=by[String(o.id)],mine=off2&&String(o.id)===String(state.me);
+      const sub=[s[2],(it&&it.name&&!off2?'ເດືອນນີ້ ປະຈຳການ '+it.month+' ມື້':'')].filter(Boolean).join(' · ');
+      const leavePill=(!ok||s[1]!=='good')?'<span class="pill '+s[1]+'">'+esc(s[0])+'</span>':'';
+      return '<li'+(mine?' class="me"':'')+'><span><b>'+esc(full(o))+'</b>'+(sub?'<span class="r-sub">'+esc(sub)+'</span>':'')+'</span><span class="b-st">'+leavePill+(ok?attPart(it,mine):'')+'</span></li>';
+    }).join('')+'</ul></section>';
 }
 const tile=(icon,title,sub,act,id,badge,cls)=>'<button class="tile'+(cls?' '+cls:'')+'" type="button" data-act="'+act+'"'+(id?' data-id="'+id+'"':'')+'><span class="ti">'+ic(icon)+'</span><b>'+title+'</b><small>'+sub+'</small>'+(badge?'<span class="badge">'+badge+'</span>':'')+'</button>';
 const linkTile=(icon,title,sub,href)=>'<a class="tile" href="'+esc(href)+'" target="_top" rel="noopener"><span class="ti">'+ic(icon)+'</span><b>'+title+'</b><small>'+sub+'</small></a>';
@@ -1078,16 +1122,13 @@ function officerHome(){
   const out=mine.filter(r=>r.status==='approved'&&now>=span(r)[0]);
   const ph=mine.filter(r=>r.status==='phone');
   const pend=mine.filter(r=>r.status==='pending').length;
-  const p=state.settings.unitPhone;
   return '<div><p class="hello">ສະບາຍດີ, '+esc(full(o))+'</p><p class="muted" style="margin:0">ຕ້ອງການເຮັດຫຍັງມື້ນີ້?</p></div>'+
     out.map(r=>{const er=expRet(r),over=now>er;return '<div class="card alert go"><div><b>'+(over?'ເກີນກຳນົດກັບແລ້ວ':'ທ່ານກຳລັງລາຢູ່')+'</b> · <span class="no">'+esc(r.no)+'</span><p>'+r.type+' '+TYPES[r.type].label+' · ກຳນົດກັບ '+fDate(er)+'</p></div><div class="actions"><button class="btn primary" type="button" data-act="self-return" data-id="'+r.id+'">'+ic('back')+' ກັບຄືນແລ້ວ</button></div></div>';}).join('')+
     ph.map(r=>'<div class="card alert"><div><b>ທ່ານໄດ້ແຈ້ງລາທາງໂທ</b><p>'+dueText(r)+'</p></div><div class="actions"><button class="btn primary" type="button" data-act="write-retro" data-id="'+r.id+'">ຂຽນໃບລາຍ້ອນຫຼັງ</button></div></div>').join('')+
-    '<div class="tiles">'+
-      tile('pen','ຂຽນໃບລາ','ຂໍລາ ຫຼື ອອກຊົ່ວຄາວ','tab','new',0,'main')+
-      tile('list','ໃບລາຂອງຂ້ອຍ',pend?pend+' ໃບ ລໍຖ້າອະນຸມັດ':'ເບິ່ງສະຖານະ ແລະ ສົ່ງອອກຮູບ','tab','mine',out.length+ph.length)+
-      (p?linkTile('phone','ໂທແຈ້ງລາສຸກເສີນ',esc(p),'tel:'+p.replace(/\s/g,'')):tile('phone','ໂທແຈ້ງລາສຸກເສີນ','ຫົວໜ້າຍັງບໍ່ໄດ້ຕັ້ງເບີ','noop'))+
-      linkTile('cal','ບັນທຶກປະຈຳການ','ລະບົບບັນທຶກປະຈຳການ ແລະ ອັດຕາກິນ',BASE_URL)+
-    '</div>'+board();
+    board()+
+    '<div class="tiles one">'+
+      tile('list','ໃບລາຂອງຂ້ອຍ',pend?pend+' ໃບ ລໍຖ້າອະນຸມັດ':'ສະຫຼຸບຈຳນວນຄັ້ງທີ່ລາ · ເບິ່ງສະຖານະ ແລະ ສົ່ງອອກຮູບ','tab','mine',out.length+ph.length)+
+    '</div>';
 }
 function headHome(){
   const now=new Date(),recs=state.records;
@@ -1100,6 +1141,40 @@ function headHome(){
     linkTile('sheet','ເປີດ Google Sheet','ແຜ່ນ ບັນທຶກການລາ',SHEET_URL)+
   '</div>'+board()+
   '<div class="tiles" style="grid-template-columns:1fr">'+linkTile('cal','ບັນທຶກປະຈຳການ','ໄປທີ່ລະບົບບັນທຶກປະຈຳການ ແລະ ລາຍງານອັດຕາກິນ',BASE_URL)+'</div>';
+}
+
+/* ---------- ໃບລາຂອງຂ້ອຍ + ສະຫຼຸບ ---------- */
+const USED=['approved','returned','phone'];
+const r1=n=>Math.round(n*10)/10;
+function mineSummary(mine){
+  const R=ui.mineRange,T=today(),Y=T.slice(0,4),M=T.slice(0,7);
+  const rs=mine.filter(r=>R==='all'||(R==='year'?r.startDate.slice(0,4)===Y:r.startDate.slice(0,7)===M));
+  const used=rs.filter(r=>USED.indexOf(r.status)>=0);
+  const n=st=>rs.filter(r=>r.status===st).length;
+  const noMeal=rs.reduce((t,r)=>t+lvNoMealDays_(r),0);
+  const seg=[['month','ເດືອນນີ້'],['year','ປີ '+Y],['all','ທັງໝົດ']].map(x=>'<button type="button" data-act="mine-range" data-id="'+x[0]+'" aria-pressed="'+(x[0]===R)+'">'+x[1]+'</button>').join('');
+  const kpi=(v,l,c)=>'<div class="kpi'+(c?' '+c:'')+'"><b>'+v+'</b><span>'+l+'</span></div>';
+  const rows=Object.keys(TYPES).map(k=>{
+    const xs=used.filter(r=>r.type===k);if(!xs.length)return '';
+    const t=TYPES[k],q=xs.reduce((s,r)=>s+lvQty_(r),0);
+    const amt=t.kind==='time'?r1(q)+' ຊົ່ວໂມງ':(r1(q)+' ມື້');
+    return '<li><span><b>'+k+'</b> '+t.label+'</span><span><b>'+xs.length+' ຄັ້ງ</b> · '+amt+'</span></li>';
+  }).join('');
+  return '<section class="card"><div class="card-head sum-head"><div><h2>ສະຫຼຸບການລາຂອງຂ້ອຍ</h2><p class="muted">ນັບຕາມວັນທີເລີ່ມລາ</p></div><div class="seg" role="group" aria-label="ຊ່ວງເວລາ">'+seg+'</div></div>'+
+    '<div class="kpis">'+kpi(used.length,'ຄັ້ງທີ່ລາ','main')+kpi(n('pending'),'ລໍຖ້າອະນຸມັດ')+kpi(n('rejected'),'ບໍ່ອະນຸມັດ')+kpi(n('absent'),'ຂາດ',n('absent')?'bad':'')+'</div>'+
+    (rows?'<ul class="bytype">'+rows+'</ul>':'<p class="empty">ບໍ່ມີການລາໃນຊ່ວງນີ້</p>')+
+    '<p class="sum-foot">ມື້ທີ່ບໍ່ໄດ້ອັດຕາກິນ (ລາໝົດມື້ / ຫຼາຍມື້ / ຂາດ): <b>'+r1(noMeal)+' ມື້</b></p></section>';
+}
+function officerMine(){
+  const now=new Date();
+  const mine=state.records.filter(r=>String(r.officerId)===String(state.me)).sort((a,b)=>b.startDate.localeCompare(a.startDate));
+  const ph=mine.filter(r=>r.status==='phone');
+  const out=mine.filter(r=>r.status==='approved'&&now>=span(r)[0]);
+  return out.map(r=>{const er=expRet(r),over=now>er;return '<div class="card alert go"><div><b>'+(over?'ເກີນກຳນົດກັບແລ້ວ':'ກຳລັງລາຢູ່')+'</b> · <span class="no">'+esc(r.no)+'</span><p>'+r.type+' '+TYPES[r.type].label+' · '+esc(period(r))+' · ກຳນົດກັບ '+fDate(er)+'</p><p class="muted">ເມື່ອກັບຮອດຫ້ອງການ ກົດ "ກັບຄືນ" ລະບົບຈະບັນທຶກເວລາ ແລະ ແຈ້ງຫົວໜ້າໜ່ວຍບໍລິການ</p></div><div class="actions"><button class="btn primary" type="button" data-act="self-return" data-id="'+r.id+'">ກັບຄືນ</button><button class="btn ghost" type="button" data-act="detail" data-id="'+r.id+'">ເປີດໃບລາ</button></div></div>';}).join('')+
+  ph.map(r=>'<div class="card alert"><div><b>ທ່ານໄດ້ແຈ້ງລາທາງໂທລະສັບ</b><p>'+r.type+' '+TYPES[r.type].label+' · '+esc(period(r))+' · ໂທແຈ້ງ '+esc(r.callTo)+' ເວລາ '+esc(r.callTime)+'</p><p>'+dueText(r)+(r.returnedAt?' · ກັບມາແລ້ວ '+fDT(r.returnedAt):'')+'</p></div><div class="actions">'+(canSelfReturn(r)?'<button class="btn primary" type="button" data-act="self-return" data-id="'+r.id+'">ກັບຄືນ</button>':'')+'<button class="btn '+(canSelfReturn(r)?'ghost':'primary')+'" type="button" data-act="write-retro" data-id="'+r.id+'">ຂຽນໃບລາຍ້ອນຫຼັງ</button></div></div>').join('')+
+  mineSummary(mine)+
+  '<section class="card"><div class="card-head"><h2>ປະຫວັດໃບລາ</h2><p class="muted">'+mine.length+' ລາຍການ · ກົດເພື່ອເບິ່ງໃບລາ ຫຼື ສົ່ງອອກເປັນຮູບພາບ</p></div>'+
+  (mine.length?'<ul class="list">'+mine.map(r=>itemRow(r,false)).join('')+'</ul>':empty('ຍັງບໍ່ມີໃບລາ'))+'</section>';
 }
 
 /* ---------- routing ---------- */
@@ -1150,7 +1225,11 @@ function render(){
 
 /* ---------- actions ---------- */
 const H={
-  noop:()=>toast('ຫົວໜ້າໜ່ວຍຍັງບໍ່ໄດ້ຕັ້ງເບີໂທແຈ້ງລາສຸກເສີນ'),
+  'att-in':(id,b)=>{
+    if(String(id)!==String(state.me))return;
+    api('attCheckin',{id:id},b).then(res=>{ui.att=res.att||ui.att;render();toast(res.already?'ທ່ານລົງເວລາມື້ນີ້ໄວ້ແລ້ວ':'ລົງເວລາເຂົ້າປະຈຳການແລ້ວ · '+clockText().slice(0,5));}).catch(e=>fail(e));
+  },
+  'mine-range':id=>{ui.mineRange=id;render();},
   reload:()=>{ui.loadErr='';render();refresh(true);},
   refresh:()=>refresh(false),
   who:()=>{prefs.chosen=false;save();render();window.scrollTo(0,0);},
@@ -1244,6 +1323,9 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Escape'){if(!$('#xmodal').hidden){$('#xmodal').hidden=true;return;}if(!$('#modal').hidden)closeModal();}
   if(e.key==='Enter'&&e.target.matches&&e.target.matches('tr.click'))openDetail(e.target.dataset.id);
 });
+
+/* live clock on the today card */
+setInterval(()=>{const c=document.getElementById('att-clock');if(c)c.textContent=clockText();},1000);
 
 /* ---------- paper form ---------- */
 function paperHTML(r,interactive){

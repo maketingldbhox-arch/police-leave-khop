@@ -34,6 +34,17 @@ function leaveApi(reqJson) {
     } else if (action === 'logout') {
       if (req.token) CacheService.getScriptCache().remove('lv_tok_' + req.token);
       authed = false;
+    } else if (action === 'attCheckin') {
+      var alk = LockService.getScriptLock();
+      alk.waitLock(20000);
+      try {
+        var ast = leaveReadStore_();
+        out.already = leaveAttCheckin_(ast, data.id);
+        out.att = leaveAttData_(ast);
+      } finally {
+        alk.releaseLock();
+      }
+      return JSON.stringify(out);
     } else if (action !== 'load') {
       var lock = LockService.getScriptLock();
       lock.waitLock(20000);
@@ -55,8 +66,12 @@ function leaveApi(reqJson) {
       }
       return JSON.stringify(out);
     }
-    out.data = leaveClientData_(leaveReadStore_(), authed);
+    var lst = leaveReadStore_();
+    out.data = leaveClientData_(lst, authed);
     out.authed = authed;
+    if (action === 'load') {
+      try { out.att = leaveAttData_(lst); } catch (ae) { out.att = {err: String(ae && ae.message || ae)}; }
+    }
     return JSON.stringify(out);
   } catch (e) {
     return JSON.stringify({ok: false, err: String(e && e.message || e)});
@@ -143,6 +158,77 @@ function leaveClientData_(store, authed) {
     authed: !!authed,
     now: leaveNow_()
   };
+}
+
+/* ---------- ບັນທຶກປະຈຳການ (ແຜ່ນ "ລາຍງານ" ດຽວກັບ Code.gs: 1 ແຖວ = 1 ຕຳຫຼວດ x 1 ວັນທີ) ---------- */
+var LV_ATT_SHEET = 'ລາຍງານ', LV_ATT_PRESENT = 'ປະຈຳການ', LV_ATT_ABSENT = 'ຂາດ/ພັກ', LV_ATT_RATE = 50000;
+function lvAttNorm_(s) { return String(s || '').replace(/\([^)]*\)/g, '').replace(/\s+/g, ''); }
+function lvAttDate_(v) {
+  return v instanceof Date ? Utilities.formatDate(v, Session.getScriptTimeZone() || LEAVE_TZ, 'yyyy-MM-dd') : String(v || '').trim();
+}
+function lvAttToday_() { return Utilities.formatDate(new Date(), LEAVE_TZ, 'yyyy-MM-dd'); }
+function lvAttRead_() {
+  var ss = leaveSS_(), sh = ss.getSheetByName(LV_ATT_SHEET);
+  if (!sh) {
+    sh = ss.insertSheet(LV_ATT_SHEET);
+    sh.appendRow(['ວັນທີ', 'ຊື່ ແລະ ນາມສະກຸນ', 'ສະຖານະ', 'ອັດຕາກິນ', 'ລວມເງິນ (ກີບ)']);
+  }
+  var last = sh.getLastRow(), vals = last > 1 ? sh.getRange(2, 1, last - 1, 5).getValues() : [];
+  var rows = [], names = [], seen = {}, latest = '', rate = LV_ATT_RATE;
+  vals.forEach(function (v, i) {
+    var d = lvAttDate_(v[0]), n = String(v[1] || '').trim();
+    if (!d || !n) return;
+    if (!seen[n]) { seen[n] = 1; names.push(n); }
+    if (d >= latest) { latest = d; if (Number(v[3])) rate = Number(v[3]); }
+    rows.push({row: i + 2, date: d, name: n, present: String(v[2]).trim() === LV_ATT_PRESENT, amount: Number(v[4]) || 0});
+  });
+  return {sh: sh, rows: rows, names: names, rate: rate};
+}
+/** ຊື່ໃນລະບົບປະຈຳການເປັນ "ສທ ຊື່ ນາມສະກຸນ (020...)": ຈັບຄູ່ກັບເຈົ້າໜ້າທີ່ໃນລະບົບລາດ້ວຍຊື່ */
+function lvAttName_(names, o) {
+  if (!o) return '';
+  var key = lvAttNorm_(o.name), ph = String(o.phone || '').replace(/\D/g, '');
+  if (!key) return '';
+  var hits = names.filter(function (n) { var k = lvAttNorm_(n); return k === key || k.slice(-key.length) === key; });
+  if (hits.length > 1 && ph) {
+    var byPh = hits.filter(function (n) { return n.replace(/\D/g, '').indexOf(ph) >= 0; });
+    if (byPh.length) hits = byPh;
+  }
+  return hits[0] || '';
+}
+function leaveAttData_(store, a) {
+  a = a || lvAttRead_();
+  var T = lvAttToday_(), M = T.slice(0, 7);
+  var items = (store.officers || []).filter(function (o) { return o.active !== false; }).map(function (o) {
+    var n = lvAttName_(a.names, o), it = {id: String(o.id), name: n, present: false, month: 0, money: 0};
+    if (n) a.rows.forEach(function (r) {
+      if (r.name !== n || !r.present) return;
+      if (r.date === T) it.present = true;
+      if (r.date.slice(0, 7) === M) { it.month++; it.money += r.amount; }
+    });
+    return it;
+  });
+  return {date: T, rate: a.rate, items: items};
+}
+/** ລົງເວລາເຂົ້າປະຈຳການມື້ນີ້ (ວັນທີຕາມເວລາເຊີບເວີ). ຄືນ true ຖ້າລົງເວລາໄວ້ແລ້ວ */
+function leaveAttCheckin_(store, id) {
+  var o = lvOff_(store, id);
+  if (!o || o.active === false) throw new Error('ບໍ່ພົບລາຍຊື່ເຈົ້າໜ້າທີ່');
+  var a = lvAttRead_(), n = lvAttName_(a.names, o);
+  if (!n) throw new Error('ບໍ່ພົບຊື່ ' + lvFullName_(o) + ' ໃນລະບົບບັນທຶກປະຈຳການ: ໃຫ້ຜູ້ຄຸ້ມຄອງເພີ່ມຊື່ກ່ອນ');
+  var T = lvAttToday_();
+  var todays = a.rows.filter(function (r) { return r.date === T; });
+  var mine = todays.filter(function (r) { return r.name === n; })[0];
+  if (mine && mine.present) return true;
+  if (mine) {
+    a.sh.getRange(mine.row, 3, 1, 3).setValues([[LV_ATT_PRESENT, a.rate, a.rate]]);
+  } else {
+    var add = todays.length ? [n] : a.names; // ມື້ໃໝ່: ໃສ່ທຸກຄົນ (ຄົນອື່ນ = ຂາດ/ພັກ) ຄືຮູບແບບເດີມ
+    var vals = add.map(function (x) { var p = x === n; return [T, x, p ? LV_ATT_PRESENT : LV_ATT_ABSENT, a.rate, p ? a.rate : 0]; });
+    a.sh.getRange(a.sh.getLastRow() + 1, 1, vals.length, 5).setValues(vals);
+  }
+  SpreadsheetApp.flush();
+  return false;
 }
 
 /* ---------- auth ---------- */
