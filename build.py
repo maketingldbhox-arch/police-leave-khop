@@ -7,9 +7,20 @@ css = L(14, 225) + '\n' + (SRC/'ui_css.css').read_text()
 segA = L(264, 417).split('\n')
 segA = '\n'.join(x for x in segA if not x.startswith("const KEY="))
 segA = re.sub(r"function nextNo\(r\)\{.*?\n\}\n", "", segA, flags=re.S)
+segA = segA.replace("'ລ1':{label:'ເຄິ່ງມື້ເຊົ້າ',note:'08:30–11:30',kind:'fixed',from:'08:30',to:'11:30'", "'ລ1':{label:'ເຄິ່ງມື້ເຊົ້າ',note:'08:00–12:00',kind:'fixed',from:'08:00',to:'12:00'")
+segA = segA.replace("'ລ2':{label:'ເຄິ່ງມື້ບ່າຍ',note:'12:30–17:00',kind:'fixed',from:'12:30',to:'17:00'", "'ລ2':{label:'ເຄິ່ງມື້ແລງ',note:'13:00–17:00',kind:'fixed',from:'13:00',to:'17:00'")
+segA = segA.replace("if(t.kind==='fixed')return [dt(r.startDate,t.from),dt(r.startDate,t.to)];", "if(t.kind==='fixed')return [dt(r.startDate,r.timeFrom||t.from),dt(r.startDate,r.timeTo||t.to)];")
+segA = segA.replace("if(t.kind==='fixed')return 'ວັນ'+wd(r.startDate)+' ທີ '+fD(r.startDate)+' ('+t.from+'–'+t.to+')';", "if(t.kind==='fixed')return 'ວັນ'+wd(r.startDate)+' ທີ '+fD(r.startDate)+' ('+(r.timeFrom||t.from)+'–'+(r.timeTo||t.to)+')';")
+segA = segA.replace("'ລ1':'ລາເຄິ່ງມື້ຊ່ວງເຊົ້າ','ລ2':'ລາເຄິ່ງມື້ຊ່ວງບ່າຍ'", "'ລ1':'ລາເຄິ່ງມື້ຊ່ວງເຊົ້າ','ລ2':'ລາເຄິ່ງມື້ຊ່ວງແລງ'")
+segA = segA.replace("back='ໃຫ້ກັບມາປະຈຳການ 12:30 ແລະ ພາກຄ່ຳ 18:00.'", "back='ໃຫ້ກັບມາປະຈຳການ 13:00 ແລະ ພາກຄ່ຳ 18:00.'")
+for k in ["note:'08:00–12:00'", "note:'13:00–17:00'", "r.timeFrom||t.from),dt(", "(r.timeFrom||t.from)+'–'", "ຊ່ວງແລງ'", "13:00 ແລະ"]:
+    assert k in segA, k
 segB = L(478, 679)
 segC = L(707, 780)
+assert "row('ເບີຕິດຕໍ່ໃນເວລາລາ'" in segC
+segC = segC.replace("row('ເບີຕິດຕໍ່ໃນເວລາລາ'", "row('ເບີໂທຕິດຕໍ່'")
 onf = L(885, 907)
+assert onf.startswith('function onField(e){') and onf.rstrip().endswith("document.addEventListener('change',onField);")
 
 def rep(s, a, b):
     assert a in s, a[:60]
@@ -22,6 +33,7 @@ segB = rep(segB, "return hotline()+'<form", "return '<form")
 segB, k = re.subn(r"function officerMine\(\)\{.*?\n\}\n", "", segB, flags=re.S); assert k == 1
 assert 'hotline' not in segB
 segB, k = re.subn(r"function headStaff\(\)\{.*?\n\}(?=\n|$)", "", segB, flags=re.S); assert k == 1
+segB, k = re.subn(r"function officerNew\(\)\{.*?\n\}\nfunction dyn\(\)\{.*?\n\}\n", "", segB, flags=re.S); assert k == 1
 # ids may be numbers-as-strings from the attendance system: compare loosely as strings
 segA = rep(segA, "const off=id=>state.officers.find(o=>o.id===id)", "const off=id=>state.officers.find(o=>String(o.id)===String(id))")
 segB = segB.replace("r.officerId===state.me", "String(r.officerId)===String(state.me)")
@@ -88,8 +100,8 @@ page = f'''<!DOCTYPE html>
 {(SRC/'ui_state.js').read_text()}
 {segB}
 {(SRC/'ui_views.js').read_text()}
+{(SRC/'ui_form.js').read_text()}
 {segC}
-{onf}
 {(SRC/'ui_tail.js').read_text()}
 }})();
 </script>

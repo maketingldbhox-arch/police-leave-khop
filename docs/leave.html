@@ -352,6 +352,19 @@ main{padding-block:14px 24px}
 .ph-new .avatar.lg{border:2px dashed var(--line);background:var(--surface)}
 .ph-new .avatar.lg.has-ph{border-style:solid}
 .ph-lbl{font-size:12.5px;color:var(--muted)}
+/* ---- leave form: 3 kinds, half-day sessions, day count ---- */
+.kinds{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.kinds.two{grid-template-columns:repeat(2,minmax(0,1fr))}
+.kinds .type{grid-template-columns:1fr;justify-items:center;text-align:center;row-gap:4px;padding:14px 8px}
+.kinds .type .code{grid-row:auto;width:46px;height:46px;font-size:15px}
+.kinds .type .tl{font-size:16px}
+@media (max-width:420px){.kinds .type .tn{font-size:11.5px}}
+.period.days{margin:0;padding:10px 14px;border-radius:10px;background:var(--accent-soft);color:var(--fg)}
+.period.days .big{font-size:18px;color:var(--accent)}
+#lf select:disabled{opacity:.55}
+/* ---- check-out ---- */
+.att-ask{font-size:13.5px;color:var(--bad);font-weight:600}
+.btn.att-out svg{width:16px;height:16px}
 
 </style>
 <link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
@@ -431,8 +444,8 @@ var LV_RATE = 50000;
 var LV_HEAD = 'ຫົວໜ້າໜ່ວຍບໍລິການ ເມືອງຄອບ';
 var LV_TYPES = {
   'ອຊ': {label: 'ອອກຊົ່ວຄາວ', kind: 'time', deduct: false},
-  'ລ1': {label: 'ເຄິ່ງມື້ເຊົ້າ', kind: 'fixed', from: '08:30', to: '11:30', deduct: false},
-  'ລ2': {label: 'ເຄິ່ງມື້ບ່າຍ', kind: 'fixed', from: '12:30', to: '17:00', deduct: false},
+  'ລ1': {label: 'ເຄິ່ງມື້ເຊົ້າ', kind: 'fixed', from: '08:00', to: '12:00', deduct: false},
+  'ລ2': {label: 'ເຄິ່ງມື້ແລງ', kind: 'fixed', from: '13:00', to: '17:00', deduct: false},
   'ລ3': {label: 'ໝົດມື້', kind: 'day', deduct: true},
   'ລ4': {label: 'ຫຼາຍມື້', kind: 'range', deduct: true},
   'ໜທ': {label: 'ໜ້າທີ່ ປກສ', kind: 'range', deduct: true}
@@ -450,7 +463,7 @@ function lvAddDays_(s, n) { return lvIsoMs_(lvMs_(s.slice(0, 10)) + n * 864e5); 
 function lvSpan_(r) {
   var t = LV_TYPES[r.type], end = r.endDate || r.startDate;
   if (t.kind === 'time') return [r.startDate + 'T' + r.timeFrom, r.startDate + 'T' + r.timeTo];
-  if (t.kind === 'fixed') return [r.startDate + 'T' + t.from, r.startDate + 'T' + t.to];
+  if (t.kind === 'fixed') return [r.startDate + 'T' + (r.timeFrom || t.from), r.startDate + 'T' + (r.timeTo || t.to)];
   return [r.startDate + 'T00:00', end + 'T23:59'];
 }
 function lvExpRet_(r) {
@@ -520,6 +533,8 @@ function lvClean_(src) {
   else if (t.kind === 'time') { if (!lvValidTime_(r.timeFrom) || !lvValidTime_(r.timeTo) || r.timeTo <= r.timeFrom) throw new Error('ເວລາບໍ່ຖືກຕ້ອງ'); }
   else { r.timeFrom = ''; r.timeTo = ''; }
   if (r.filing !== 'retro') r.filing = 'advance';
+  r.pksReplacement = r.pksReplacement.trim();
+  if (r.pksReplacement) r.handoverTo = ''; // ມີຜູ້ແທນຈາກ ປກສ: ບໍ່ບັນທຶກຜູ້ຮັບມອບໜ້າທີ່
   return r;
 }
 
@@ -642,8 +657,8 @@ const RATE=50000;
 const HEAD='ຫົວໜ້າໜ່ວຍບໍລິການ ເມືອງຄອບ';
 const TYPES={
   'ອຊ':{label:'ອອກຊົ່ວຄາວ',note:'ບໍ່ເກີນ 2 ຊົ່ວໂມງ',kind:'time',notice:0,deduct:false},
-  'ລ1':{label:'ເຄິ່ງມື້ເຊົ້າ',note:'08:30–11:30',kind:'fixed',from:'08:30',to:'11:30',notice:1,deduct:false},
-  'ລ2':{label:'ເຄິ່ງມື້ບ່າຍ',note:'12:30–17:00',kind:'fixed',from:'12:30',to:'17:00',notice:1,deduct:false},
+  'ລ1':{label:'ເຄິ່ງມື້ເຊົ້າ',note:'08:00–12:00',kind:'fixed',from:'08:00',to:'12:00',notice:1,deduct:false},
+  'ລ2':{label:'ເຄິ່ງມື້ແລງ',note:'13:00–17:00',kind:'fixed',from:'13:00',to:'17:00',notice:1,deduct:false},
   'ລ3':{label:'ໝົດມື້',note:'1 ມື້ ລວມພາກຄ່ຳ',kind:'day',notice:1,deduct:true},
   'ລ4':{label:'ຫຼາຍມື້',note:'2 ມື້ຂຶ້ນໄປ',kind:'range',notice:3,deduct:true,pks:true},
   'ໜທ':{label:'ໜ້າທີ່ ປກສ',note:'ຕາມຄຳສັ່ງ ປກສ',kind:'range',notice:0,deduct:true,pks:true}
@@ -690,7 +705,7 @@ const monthLabel=m=>MONTHS[Number(m.slice(5,7))-1]+' '+m.slice(0,4);
 function span(r){
   const t=TYPES[r.type],end=r.endDate||r.startDate;
   if(t.kind==='time')return [dt(r.startDate,r.timeFrom),dt(r.startDate,r.timeTo)];
-  if(t.kind==='fixed')return [dt(r.startDate,t.from),dt(r.startDate,t.to)];
+  if(t.kind==='fixed')return [dt(r.startDate,r.timeFrom||t.from),dt(r.startDate,r.timeTo||t.to)];
   return [dt(r.startDate,'00:00'),dt(end,'23:59')];
 }
 const overlap=(a,b)=>a[0]<b[1]&&b[0]<a[1];
@@ -715,7 +730,7 @@ function qtyText(r){
 function period(r){
   const t=TYPES[r.type],end=r.endDate||r.startDate;
   if(t.kind==='time')return 'ວັນ'+wd(r.startDate)+' ທີ '+fD(r.startDate)+' ເວລາ '+r.timeFrom+'–'+r.timeTo;
-  if(t.kind==='fixed')return 'ວັນ'+wd(r.startDate)+' ທີ '+fD(r.startDate)+' ('+t.from+'–'+t.to+')';
+  if(t.kind==='fixed')return 'ວັນ'+wd(r.startDate)+' ທີ '+fD(r.startDate)+' ('+(r.timeFrom||t.from)+'–'+(r.timeTo||t.to)+')';
   if(t.kind==='day'||end===r.startDate)return 'ວັນ'+wd(r.startDate)+' ທີ '+fD(r.startDate);
   return 'ແຕ່ວັນທີ '+fD(r.startDate)+' ຫາ '+fD(end);
 }
@@ -776,10 +791,10 @@ const checksHTML=list=>list.map(c=>'<li class="'+c.lv+'">'+esc(c.tx)+'</li>').jo
 
 function approveText(r){
   const t=TYPES[r.type];
-  const verb={'ອຊ':'ອອກນອກຈຸດປະຈຳການຊົ່ວຄາວ','ລ1':'ລາເຄິ່ງມື້ຊ່ວງເຊົ້າ','ລ2':'ລາເຄິ່ງມື້ຊ່ວງບ່າຍ','ລ3':'ລາໝົດມື້','ລ4':'ລາພັກ '+qty(r)+' ມື້','ໜທ':'ໄປປະຕິບັດໜ້າທີ່ຕາມຄຳສັ່ງ ປກສ ເລກທີ '+(r.orderNo||'…')}[r.type];
+  const verb={'ອຊ':'ອອກນອກຈຸດປະຈຳການຊົ່ວຄາວ','ລ1':'ລາເຄິ່ງມື້ຊ່ວງເຊົ້າ','ລ2':'ລາເຄິ່ງມື້ຊ່ວງແລງ','ລ3':'ລາໝົດມື້','ລ4':'ລາພັກ '+qty(r)+' ມື້','ໜທ':'ໄປປະຕິບັດໜ້າທີ່ຕາມຄຳສັ່ງ ປກສ ເລກທີ '+(r.orderNo||'…')}[r.type];
   let back;
   if(t.kind==='time')back='ໃຫ້ກັບມາກ່ອນເວລາ '+r.timeTo+'.';
-  else if(r.type==='ລ1')back='ໃຫ້ກັບມາປະຈຳການ 12:30 ແລະ ພາກຄ່ຳ 18:00.';
+  else if(r.type==='ລ1')back='ໃຫ້ກັບມາປະຈຳການ 13:00 ແລະ ພາກຄ່ຳ 18:00.';
   else if(r.type==='ລ2')back='ໃຫ້ກັບມາປະຈຳການພາກຄ່ຳ 18:00.';
   else back='ໃຫ້ກັບມາປະຈຳການ ວັນທີ '+fD(addDays(r.endDate||r.startDate,1))+' ເວລາ 08:30.';
   const pre=r.filing==='retro'?'ອະນຸມັດທາງໂທລະສັບ ເວລາ '+r.callTime+'. ':'';
@@ -840,7 +855,7 @@ function ensureMe(){if(!actives().find(o=>String(o.id)===String(state.me))){cons
 const demo={store:null,pass:'1234',toks:{},att:{}};
 function demoAtt(){
   const T=today(),s=demo.store;
-  return {date:T,rate:50000,items:s.officers.filter(o=>o.active).map(o=>{const k=o.id;demo.att[k]=demo.att[k]||{month:7};const p=!!demo.att[k][T];return {id:String(o.id),name:(o.rank?o.rank+' ':'')+o.name,present:p,month:demo.att[k].month+(p?1:0),money:(demo.att[k].month+(p?1:0))*50000};})};
+  return {date:T,rate:50000,items:s.officers.filter(o=>o.active).map(o=>{const k=o.id;demo.att[k]=demo.att[k]||{month:7};const p=!!demo.att[k][T],L=(demo.att[k].log||{})[T]||{};return {id:String(o.id),name:(o.rank?o.rank+' ':'')+o.name,present:p,inAt:L.inAt||'',outAt:L.outAt||'',month:demo.att[k].month+(p?1:0),money:(demo.att[k].month+(p?1:0))*50000};})};
 }
 function demoCall(req){
   return new Promise(res=>setTimeout(()=>{
@@ -849,7 +864,7 @@ function demoCall(req){
       const a=req.action,d=req.data||{};let authed=!!demo.toks[req.token];const out={ok:true};
       if(a==='login'){if(d.pass!==demo.pass){res({ok:false,err:'ລະຫັດບໍ່ຖືກຕ້ອງ. ລອງໃໝ່ອີກຄັ້ງ.'});return;}const t='t'+Math.random().toString(36).slice(2);demo.toks[t]=1;out.token=t;authed=true;}
       else if(a==='logout'){delete demo.toks[req.token];authed=false;}
-      else if(a==='attCheckin'){const k=d.id;demo.att[k]=demo.att[k]||{month:7};out.already=!!demo.att[k][today()];demo.att[k][today()]=1;out.att=demoAtt();res(JSON.parse(JSON.stringify(out)));return;}
+      else if(a==='attCheckin'||a==='attCheckout'){const k=d.id,T=today(),x=demo.att[k]=demo.att[k]||{month:7},L=demo.att[k].log=demo.att[k].log||{};const t=hm(new Date());if(a==='attCheckin'){out.already=!!x[T];if(!x[T]){x[T]=1;L[T]={inAt:t,outAt:''};}}else{out.already=!x[T];if(x[T]){x[T]=0;L[T]={inAt:(L[T]||{}).inAt||'',outAt:t};}}out.att=demoAtt();res(JSON.parse(JSON.stringify(out)));return;}
       else if(a!=='load'){
         if(a==='settingsSave'&&d.pass){if(!authed)throw new Error('AUTH');if(String(d.pass).length<4)throw new Error('ລະຫັດຕ້ອງມີຢ່າງໜ້ອຍ 4 ຕົວ');demo.pass=d.pass;}
         out.id=leaveCore_(demo.store,a,d,nowL(),authed).id;
@@ -887,11 +902,11 @@ function api(action,data,btn){
 }
 function fail(e,msgEl){const t=e&&e.message||String(e);if(msgEl){msgEl.textContent=t;msgEl.className='form-msg bad';}toast(t);}
 function refresh(quiet){
-  return api('load').then(res=>{ui.att=res.att||{err:'OLD'};render();if(!quiet)toast('ອັບເດດຂໍ້ມູນແລ້ວ');}).catch(e=>{if(!ui.loaded){ui.loadErr=e.message;render();}else toast(e.message);});
+  return api('load').then(res=>{ui.att=res.att||{err:'OLD'};if(state.role==='officer'&&state.tab.officer==='new'&&$('#lf'))syncFormLists();else render();if(!quiet)toast('ອັບເດດຂໍ້ມູນແລ້ວ');}).catch(e=>{if(!ui.loaded){ui.loadErr=e.message;render();}else toast(e.message);});
 }
 function newDraft(){
   const o=off(state.me),h=actives().find(x=>x.id!==o.id);
-  return {officerId:o.id,type:'ລ2',startDate:addDays(today(),1),endDate:addDays(today(),2),timeFrom:'09:00',timeTo:'10:00',reason:'',reasonOther:'',orderNo:'',detail:'',destination:'',phone:o.phone||'',emergencyName:'',emergencyPhone:'',attachMed:false,attachOrder:false,filing:'advance',callTime:'',callTo:'ຫົວໜ້າໜ່ວຍບໍລິການ',handoverTo:h?h.id:'',pksReplacement:'',pksNotified:false,pksContact:'',pledge:false,linkId:null};
+  return {officerId:o.id,type:'ລ3',startDate:addDays(today(),1),endDate:addDays(today(),2),timeFrom:'09:00',timeTo:'10:00',reason:'',reasonOther:'',orderNo:'',detail:'',destination:'',phone:o.phone||'',emergencyName:'',emergencyPhone:'',attachMed:false,attachOrder:false,filing:'advance',callTime:'',callTo:'ຫົວໜ້າໜ່ວຍບໍລິການ',handoverTo:h?h.id:'',pksReplacement:'',pksNotified:false,pksContact:'',pledge:false,linkId:null};
 }
 let draft=null;
 function draftRec(){
@@ -900,6 +915,8 @@ function draftRec(){
   if(t.kind!=='range')r.endDate=r.startDate;
   if(t.kind==='fixed'){r.timeFrom=t.from;r.timeTo=t.to;}
   if(t.kind==='day'||t.kind==='range'){r.timeFrom='';r.timeTo='';}
+  r.pksReplacement=String(r.pksReplacement||'').trim();
+  if(r.pksReplacement)r.handoverTo='';
   return r;
 }
 
@@ -917,59 +934,6 @@ const canSelfReturn=r=>state.role==='officer'&&String(r.officerId)===String(stat
 const unacked=()=>state.records.filter(r=>r.returnBy==='self'&&r.returnAck===false);
 
 /* ---------- officer views ---------- */
-function officerNew(){
-  const o=off(state.me),d=draft;
-  const link=d.linkId?get(d.linkId):null;
-  const others=actives().filter(x=>x.id!==o.id);
-  return '<form id="lf" class="card form" novalidate>'+
-  '<div class="card-head"><h2>ຂຽນໃບຂໍລາພັກ</h2><p class="muted">ຜູ້ຂໍລາ: <b>'+esc(full(o))+'</b> · ປກສ ເມືອງຄອບ</p></div>'+
-  (link?'<div class="note">ຍື່ນຍ້ອນຫຼັງ ສຳລັບການແຈ້ງທາງໂທ ວັນທີ '+fD(link.startDate)+' ເວລາ '+esc(link.callTime)+' · '+dueText(link)+'</div>':'')+
-  '<fieldset class="field"><legend>ປະເພດການລາ</legend><div class="types">'+Object.keys(TYPES).map(k=>{const t=TYPES[k];return '<label class="type"><input type="radio" name="type" value="'+k+'"'+(d.type===k?' checked':'')+'><span class="code">'+k+'</span><span class="tl">'+t.label+'</span><span class="tn">'+t.note+'</span></label>';}).join('')+'</div></fieldset>'+
-  '<div class="row">'+
-    '<div class="field"><label for="f-start" id="l-start">ວັນທີ</label><input type="date" id="f-start" name="startDate" value="'+d.startDate+'"></div>'+
-    '<div class="field" data-show="range"><label for="f-end">ຫາວັນທີ</label><input type="date" id="f-end" name="endDate" value="'+d.endDate+'"></div>'+
-    '<div class="field" data-show="time"><label for="f-tf">ເວລາອອກ</label><input type="time" id="f-tf" name="timeFrom" value="'+d.timeFrom+'"></div>'+
-    '<div class="field" data-show="time"><label for="f-tt">ເວລາກັບ</label><input type="time" id="f-tt" name="timeTo" value="'+d.timeTo+'"></div>'+
-  '</div>'+
-  '<p class="period" id="f-period"></p>'+
-  '<fieldset class="field"><legend>ເຫດຜົນ</legend><div class="chips">'+REASONS.map(x=>'<label class="chip"><input type="radio" name="reason" value="'+x+'"'+(d.reason===x?' checked':'')+'><span>'+x+'</span></label>').join('')+'</div></fieldset>'+
-  '<div class="field" data-show="reasonOther"><label for="f-ro">ລະບຸເຫດຜົນ</label><input id="f-ro" name="reasonOther" value="'+esc(d.reasonOther)+'"></div>'+
-  '<div class="field" data-show="order"><label for="f-order">ເລກທີຄຳສັ່ງ ປກສ</label><input id="f-order" name="orderNo" placeholder="ເຊັ່ນ 112/ປກສ.ຄອບ" value="'+esc(d.orderNo)+'"></div>'+
-  '<div class="field"><label for="f-detail">ລາຍລະອຽດເຫດຜົນ</label><textarea id="f-detail" name="detail" rows="2">'+esc(d.detail)+'</textarea></div>'+
-  '<div class="row">'+
-    '<div class="field"><label for="f-dest">ສະຖານທີ່ທີ່ຈະໄປ</label><input id="f-dest" name="destination" value="'+esc(d.destination)+'"></div>'+
-    '<div class="field"><label for="f-phone">ເບີໂທຕິດຕໍ່ໃນເວລາລາ</label><input id="f-phone" name="phone" inputmode="tel" value="'+esc(d.phone)+'"></div>'+
-  '</div>'+
-  '<fieldset class="field" data-show="emerg"><legend>ຕິດຕໍ່ສຸກເສີນ (ກໍລະນີໂທຫາຜູ້ລາບໍ່ໄດ້)</legend><div class="row">'+
-    '<div class="field"><label for="f-en" class="sub-label">ຊື່ ແລະ ຄວາມສຳພັນ</label><input id="f-en" name="emergencyName" placeholder="ເຊັ່ນ ພັນລະຍາ, ພໍ່, ແມ່" value="'+esc(d.emergencyName)+'"></div>'+
-    '<div class="field"><label for="f-ep" class="sub-label">ເບີໂທສຸກເສີນ</label><input id="f-ep" name="emergencyPhone" inputmode="tel" value="'+esc(d.emergencyPhone)+'"></div>'+
-  '</div></fieldset>'+
-  '<fieldset class="field"><legend>ເອກະສານຕິດຄັດ</legend><div class="chips"><label class="chip"><input type="checkbox" id="f-med" name="attachMed"'+(d.attachMed?' checked':'')+'><span>ໃບຢັ້ງຢືນແພດ</span></label><label class="chip"><input type="checkbox" id="f-ord" name="attachOrder"'+(d.attachOrder?' checked':'')+'><span>ຄຳສັ່ງ ປກສ</span></label></div></fieldset>'+
-  '<fieldset class="field"><legend>ການຍື່ນ</legend><div class="chips"><label class="chip"><input type="radio" name="filing" value="advance"'+(d.filing==='advance'?' checked':'')+(link?' disabled':'')+'><span>ຍື່ນລ່ວງໜ້າ</span></label><label class="chip"><input type="radio" name="filing" value="retro"'+(d.filing==='retro'?' checked':'')+(link?' disabled':'')+'><span>ຍື່ນຍ້ອນຫຼັງ (ສຸກເສີນ)</span></label></div></fieldset>'+
-  '<div class="row" data-show="retro">'+
-    '<div class="field"><label for="f-ct">ເວລາໂທແຈ້ງ</label><input type="time" id="f-ct" name="callTime" value="'+esc(d.callTime)+'"></div>'+
-    '<div class="field"><label for="f-cto">ໂທແຈ້ງຫາ</label><input id="f-cto" name="callTo" value="'+esc(d.callTo)+'"></div>'+
-  '</div>'+
-  '<fieldset class="field"><legend>ການມອບໜ້າທີ່</legend><div class="row">'+
-    '<div class="field"><label for="f-ho" class="sub-label">ຜູ້ຮັບມອບໜ້າທີ່ (ຢູ່ປະຈຳການ)</label><select id="f-ho" name="handoverTo">'+(others.length?others.map(x=>'<option value="'+x.id+'"'+(x.id===d.handoverTo?' selected':'')+'>'+esc(full(x))+'</option>').join(''):'<option value="">ບໍ່ມີເຈົ້າໜ້າທີ່ອື່ນ</option>')+'</select></div>'+
-    '<div class="field"><label for="f-rep" class="sub-label">ຜູ້ມາແທນຈາກ ປກສ (ຖ້າມີ)</label><input id="f-rep" name="pksReplacement" value="'+esc(d.pksReplacement)+'" placeholder="ຍົດ, ຊື່ ແລະ ນາມສະກຸນ"></div>'+
-  '</div></fieldset>'+
-  '<div class="field" data-show="pks"><label class="check" for="f-pksn"><input type="checkbox" id="f-pksn" name="pksNotified"'+(d.pksNotified?' checked':'')+'><span>ແຈ້ງ ປກສ ເມືອງຄອບແລ້ວ</span></label><input id="f-pkc" name="pksContact" placeholder="ຜູ້ຮັບແຈ້ງ ແລະ ເບີໂທ" value="'+esc(d.pksContact)+'"></div>'+
-  '<div class="checks-box"><h3>ກວດຕາມລະບຽບ (ອັດຕະໂນມັດ)</h3><ul class="checks" id="f-checks"></ul></div>'+
-  '<label class="check pledge" for="f-pledge"><input type="checkbox" id="f-pledge" name="pledge"'+(d.pledge?' checked':'')+'><span>ຂ້າພະເຈົ້າຂໍຢັ້ງຢືນວ່າ ຂໍ້ມູນຂ້າງເທິງເປັນຄວາມຈິງ ແລະ ຈະກັບມາປະຈຳການຕາມກຳນົດ. ຖ້າກັບຊ້າ ຫຼື ບໍ່ຍື່ນໃບລາຕາມລະບຽບ ຍິນດີໃຫ້ນັບເປັນ "ຂາດ".</span></label>'+
-  '<div class="actions"><button type="submit" class="btn primary" id="f-submit">ສົ່ງໃບລາໃຫ້ຫົວໜ້າອະນຸມັດ</button><p class="form-msg" id="f-msg" role="status"></p></div>'+
-  '</form>';
-}
-function dyn(){
-  const f=$('#lf');if(!f)return;
-  const t=TYPES[draft.type];
-  const show={range:t.kind==='range',time:t.kind==='time',reasonOther:draft.reason==='ອື່ນໆ',order:draft.type==='ໜທ'||draft.reason==='ວຽກ ປກສ',retro:draft.filing==='retro',pks:!!t.pks,emerg:draft.type!=='ອຊ'};
-  f.querySelectorAll('[data-show]').forEach(el=>{el.hidden=!show[el.dataset.show];});
-  $('#l-start').textContent=t.kind==='range'?'ແຕ່ວັນທີ':'ວັນທີ';
-  const r=draftRec();
-  $('#f-period').innerHTML='<b>'+esc(period(r))+'</b> · '+qtyText(r);
-  $('#f-checks').innerHTML=checksHTML(checks(r));
-}
 
 /* ---------- head views ---------- */
 function loginView(){
@@ -1126,9 +1090,16 @@ const clockText=()=>{const d=new Date();return p2(d.getHours())+':'+p2(d.getMinu
 const kip=n=>Math.round(Number(n)||0).toLocaleString('en-US');
 function attPart(it,mine){
   if(!it)return '';
-  if(it.present)return '<span class="pill good">'+ic('check')+' ລົງເວລາແລ້ວ</span>';
-  if(mine)return '<button class="btn primary sm att-in" type="button" data-act="att-in" data-id="'+esc(it.id)+'">'+ic('clock')+' ລົງເວລາເຂົ້າ</button>';
-  return '<span class="pill">ຍັງບໍ່ລົງເວລາ</span>';
+  const id=esc(it.id);
+  if(it.present){
+    const pill='<span class="pill good">'+ic('check')+' ລົງເວລາແລ້ວ'+(it.inAt?' '+esc(it.inAt):'')+'</span>';
+    if(!mine)return pill;
+    if(ui.confirmOut===String(it.id))return '<span class="att-ask">ອອກເວລາ ແລະ ບໍ່ຮັບອັດຕາກິນມື້ນີ້?</span><button class="btn danger sm" type="button" data-act="att-out-go" data-id="'+id+'">ຢືນຢັນອອກເວລາ</button><button class="btn ghost sm" type="button" data-act="att-out-no">ຍົກເລີກ</button>';
+    return pill+'<button class="btn ghost sm att-out" type="button" data-act="att-out" data-id="'+id+'">'+ic('back')+' ອອກເວລາ</button>';
+  }
+  const outPill=it.outAt?'<span class="pill warn">ອອກເວລາແລ້ວ '+esc(it.outAt)+'</span>':'';
+  if(mine)return outPill+'<button class="btn primary sm att-in" type="button" data-act="att-in" data-id="'+id+'">'+ic('clock')+' ລົງເວລາເຂົ້າ</button>';
+  return outPill||'<span class="pill">ຍັງບໍ່ລົງເວລາ</span>';
 }
 function board(){
   const a=ui.att,ok=a&&!a.err&&a.items,off2=state.role==='officer';
@@ -1141,7 +1112,7 @@ function board(){
     note+
     (me&&me.name?'<p class="att-me">ເດືອນນີ້ທ່ານປະຈຳການ <b>'+me.month+' ມື້</b> · ອັດຕາກິນ <b>'+kip(me.money)+' ກີບ</b></p>':'')+
     '<ul class="board">'+
-    actives().map(o=>{
+    actives().filter(o=>!off2||String(o.id)===String(state.me)).map(o=>{
       const s=todayStatus(o),it=by[String(o.id)],mine=off2&&String(o.id)===String(state.me);
       const sub=[s[2],(it&&it.name&&!off2?'ເດືອນນີ້ ປະຈຳການ '+it.month+' ມື້':'')].filter(Boolean).join(' · ');
       const leavePill=(!ok||s[1]!=='good')?'<span class="pill '+s[1]+'">'+esc(s[0])+'</span>':'';
@@ -1331,6 +1302,12 @@ const H={
     if(String(id)!==String(state.me))return;
     api('attCheckin',{id:id},b).then(res=>{ui.att=res.att||ui.att;render();toast(res.already?'ທ່ານລົງເວລາມື້ນີ້ໄວ້ແລ້ວ':'ລົງເວລາເຂົ້າປະຈຳການແລ້ວ · '+clockText().slice(0,5));}).catch(e=>fail(e));
   },
+  'att-out':id=>{ui.confirmOut=String(id);render();},
+  'att-out-no':()=>{ui.confirmOut=null;render();},
+  'att-out-go':(id,b)=>{
+    if(String(id)!==String(state.me))return;
+    api('attCheckout',{id:id},b).then(res=>{ui.confirmOut=null;ui.att=res.att||ui.att;render();toast(res.already?'ທ່ານຍັງບໍ່ໄດ້ລົງເວລາມື້ນີ້':'ອອກເວລາແລ້ວ · '+clockText().slice(0,5)+' · ມື້ນີ້ບໍ່ນັບອັດຕາກິນ');}).catch(e=>{ui.confirmOut=null;render();fail(e);});
+  },
   'mine-range':id=>{ui.mineRange=id;render();},
   reload:()=>{ui.loadErr='';render();refresh(true);},
   refresh:()=>refresh(false),
@@ -1340,7 +1317,7 @@ const H={
     else{state.role='officer';state.me=id;state.tab.officer='home';draft=newDraft();}
     prefs.chosen=true;save();render();window.scrollTo(0,0);
   },
-  tab:id=>{state.tab[state.role]=id;ui.confirmDel=null;save();render();window.scrollTo(0,0);},
+  tab:id=>{state.tab[state.role]=id;ui.confirmDel=null;ui.confirmOut=null;save();render();window.scrollTo(0,0);if(state.role==='officer'&&id==='new'&&ui.loaded)refresh(true);},
   logout:()=>{api('logout').catch(()=>{}).then(()=>{setToken('');render();toast('ອອກຈາກລະບົບແລ້ວ');});},
   detail:id=>openDetail(id),
   close:()=>closeModal(),
@@ -1438,6 +1415,121 @@ document.addEventListener('keydown',e=>{
 /* live clock on the today card */
 setInterval(()=>{const c=document.getElementById('att-clock');if(c)c.textContent=clockText();},1000);
 
+/* ---------- ຂຽນໃບລາ: ເຄິ່ງວັນ / 1 ວັນ / ຫຼາຍວັນ ---------- */
+const KINDS=[['half','ເຄິ່ງວັນ','½','ຕອນເຊົ້າ ຫຼື ຕອນແລງ'],['day','1 ວັນ','1','ໝົດມື້'],['multi','ຫຼາຍວັນ','2+','ເລືອກວັນທີເລີ່ມ ແລະ ສຸດທ້າຍ']];
+const SESSIONS=[['ລ1','ຕອນເຊົ້າ','08:00 – 12:00'],['ລ2','ຕອນແລງ','13:00 – 17:00']];
+const ATTACH=[['','ບໍ່ມີ / ບໍ່ລະບຸ'],['med','ໃບຢັ້ງຢືນແພດ'],['order','ຄຳສັ່ງ ປກສ'],['both','ໃບຢັ້ງຢືນແພດ ແລະ ຄຳສັ່ງ ປກສ']];
+const kindOf=t=>t==='ລ1'||t==='ລ2'||t==='ອຊ'?'half':(t==='ລ3'?'day':'multi');
+const attachVal=d=>d.attachMed&&d.attachOrder?'both':(d.attachMed?'med':(d.attachOrder?'order':''));
+const opt=(v,label,cur)=>'<option value="'+esc(v)+'"'+(String(v)===String(cur)?' selected':'')+'>'+esc(label)+'</option>';
+function handoverOpts(d){
+  const others=actives().filter(x=>String(x.id)!==String(d.officerId));
+  if(!others.length)return opt('','ບໍ່ມີເຈົ້າໜ້າທີ່ອື່ນ','');
+  if(!others.find(x=>String(x.id)===String(d.handoverTo)))d.handoverTo=others[0].id;
+  return others.map(x=>opt(x.id,full(x),d.handoverTo)).join('');
+}
+function officerNew(){
+  const o=off(state.me),d=draft;
+  const link=d.linkId?get(d.linkId):null;
+  if(d.type==='ໜທ')d.type='ລ4';
+  const k=kindOf(d.type);
+  return '<form id="lf" class="card form" novalidate>'+
+  '<div class="card-head"><h2>ຂຽນໃບຂໍລາພັກ</h2><p class="muted">ຜູ້ຂໍລາ: <b>'+esc(full(o))+'</b> · ປກສ ເມືອງຄອບ</p></div>'+
+  (link?'<div class="note">ຍື່ນຍ້ອນຫຼັງ ສຳລັບການແຈ້ງທາງໂທ ວັນທີ '+fD(link.startDate)+' ເວລາ '+esc(link.callTime)+' · '+dueText(link)+'</div>':'')+
+  '<fieldset class="field"><legend><span class="sec-n">1</span>ປະເພດການລາ</legend><div class="kinds">'+
+    KINDS.map(x=>'<label class="type"><input type="radio" name="kind" value="'+x[0]+'"'+(k===x[0]?' checked':'')+'><span class="code">'+x[2]+'</span><span class="tl">'+x[1]+'</span><span class="tn">'+x[3]+'</span></label>').join('')+
+  '</div></fieldset>'+
+  (d.type==='ອຊ'?'<div class="note" data-show="time">ອອກຊົ່ວຄາວ (ຕາມການແຈ້ງທາງໂທ): ລະບຸເວລາອອກ ແລະ ເວລາກັບ</div>':'')+
+  '<fieldset class="field" data-show="half"><legend>ຊ່ວງເວລາພັກ</legend><div class="kinds two">'+
+    SESSIONS.map(x=>'<label class="type"><input type="radio" name="session" value="'+x[0]+'"'+(d.type===x[0]?' checked':'')+'><span class="code">'+(x[0]==='ລ1'?'ເຊົ້າ':'ແລງ')+'</span><span class="tl">'+x[1]+'</span><span class="tn">'+x[2]+'</span></label>').join('')+
+  '</div></fieldset>'+
+  '<div class="row">'+
+    '<div class="field"><label for="f-start" id="l-start">ວັນທີ</label><input type="date" id="f-start" name="startDate" value="'+d.startDate+'"></div>'+
+    '<div class="field" data-show="range"><label for="f-end">ວັນທີສຸດທ້າຍ</label><input type="date" id="f-end" name="endDate" value="'+d.endDate+'"></div>'+
+    '<div class="field" data-show="time"><label for="f-tf">ເວລາອອກ</label><input type="time" id="f-tf" name="timeFrom" value="'+esc(d.timeFrom)+'"></div>'+
+    '<div class="field" data-show="time"><label for="f-tt">ເວລາກັບ</label><input type="time" id="f-tt" name="timeTo" value="'+esc(d.timeTo)+'"></div>'+
+  '</div>'+
+  '<p class="period days" id="f-period"></p>'+
+  '<div class="row">'+
+    '<div class="field"><label for="f-reason"><span class="sec-n">2</span>ເຫດຜົນການລາ</label><select id="f-reason" name="reason">'+opt('','— ເລືອກເຫດຜົນ —',d.reason)+REASONS.map(x=>opt(x,x,d.reason)).join('')+'</select></div>'+
+    '<div class="field" data-show="reasonOther"><label for="f-ro">ລະບຸເຫດຜົນ</label><input id="f-ro" name="reasonOther" value="'+esc(d.reasonOther)+'"></div>'+
+    '<div class="field" data-show="order"><label for="f-order">ເລກທີຄຳສັ່ງ ປກສ</label><input id="f-order" name="orderNo" placeholder="ເຊັ່ນ 112/ປກສ.ຄອບ" value="'+esc(d.orderNo)+'"></div>'+
+  '</div>'+
+  '<div class="field"><label for="f-detail">ລາຍລະອຽດເຫດຜົນ</label><textarea id="f-detail" name="detail" rows="2">'+esc(d.detail)+'</textarea></div>'+
+  '<div class="row">'+
+    '<div class="field"><label for="f-dest">ສະຖານທີ່ທີ່ຈະໄປ</label><input id="f-dest" name="destination" value="'+esc(d.destination)+'"></div>'+
+    '<div class="field"><label for="f-phone">ເບີໂທຕິດຕໍ່</label><input id="f-phone" name="phone" inputmode="tel" value="'+esc(d.phone)+'"></div>'+
+  '</div>'+
+  '<fieldset class="field" data-show="emerg"><legend>ຕິດຕໍ່ສຸກເສີນ (ກໍລະນີໂທຫາຜູ້ລາບໍ່ໄດ້)</legend><div class="row">'+
+    '<div class="field"><label for="f-en" class="sub-label">ຊື່ ແລະ ຄວາມສຳພັນ</label><input id="f-en" name="emergencyName" placeholder="ເຊັ່ນ ພັນລະຍາ, ພໍ່, ແມ່" value="'+esc(d.emergencyName)+'"></div>'+
+    '<div class="field"><label for="f-ep" class="sub-label">ເບີໂທສຸກເສີນ</label><input id="f-ep" name="emergencyPhone" inputmode="tel" value="'+esc(d.emergencyPhone)+'"></div>'+
+  '</div></fieldset>'+
+  '<div class="row">'+
+    '<div class="field"><label for="f-att"><span class="sec-n">3</span>ເອກະສານຕິດຄັດ <span class="muted">(ບໍ່ລະບຸກໍໄດ້)</span></label><select id="f-att" name="attach">'+ATTACH.map(x=>opt(x[0],x[1],attachVal(d))).join('')+'</select></div>'+
+    '<div class="field"><label for="f-filing">ການຍື່ນ</label><select id="f-filing" name="filing"'+(link?' disabled':'')+'>'+opt('advance','ຍື່ນລ່ວງໜ້າ',d.filing)+opt('retro','ຍື່ນຍ້ອນຫຼັງ (ສຸກເສີນ)',d.filing)+'</select></div>'+
+  '</div>'+
+  '<div class="row" data-show="retro">'+
+    '<div class="field"><label for="f-ct">ເວລາໂທແຈ້ງ</label><input type="time" id="f-ct" name="callTime" value="'+esc(d.callTime)+'"></div>'+
+    '<div class="field"><label for="f-cto">ໂທແຈ້ງຫາ</label><input id="f-cto" name="callTo" value="'+esc(d.callTo)+'"></div>'+
+  '</div>'+
+  '<fieldset class="field"><legend><span class="sec-n">4</span>ການມອບໜ້າທີ່</legend><div class="row">'+
+    '<div class="field"><label for="f-ho" class="sub-label">ຜູ້ຮັບມອບໜ້າທີ່ (ຢູ່ປະຈຳການ)</label><select id="f-ho" name="handoverTo">'+handoverOpts(d)+'</select></div>'+
+    '<div class="field"><label for="f-rep" class="sub-label">ຜູ້ມາແທນຈາກ ປກສ (ຖ້າມີ)</label><input id="f-rep" name="pksReplacement" value="'+esc(d.pksReplacement)+'" placeholder="ຍົດ, ຊື່ ແລະ ນາມສະກຸນ"></div>'+
+  '</div><p class="how" id="f-ho-note" hidden>ມີຜູ້ມາແທນຈາກ ປກສ ແລ້ວ: ລະບົບຈະບໍ່ບັນທຶກ "ຜູ້ຮັບມອບໜ້າທີ່ (ຢູ່ປະຈຳການ)"</p></fieldset>'+
+  '<div class="field" data-show="pks"><label class="check" for="f-pksn"><input type="checkbox" id="f-pksn" name="pksNotified"'+(d.pksNotified?' checked':'')+'><span>ແຈ້ງ ປກສ ເມືອງຄອບແລ້ວ</span></label><input id="f-pkc" name="pksContact" placeholder="ຜູ້ຮັບແຈ້ງ ແລະ ເບີໂທ" value="'+esc(d.pksContact)+'"></div>'+
+  '<div class="checks-box"><h3>ກວດຕາມລະບຽບ (ອັດຕະໂນມັດ)</h3><ul class="checks" id="f-checks"></ul></div>'+
+  '<label class="check pledge" for="f-pledge"><input type="checkbox" id="f-pledge" name="pledge"'+(d.pledge?' checked':'')+'><span>ຂ້າພະເຈົ້າຂໍຢັ້ງຢືນວ່າ ຂໍ້ມູນຂ້າງເທິງເປັນຄວາມຈິງ ແລະ ຈະກັບມາປະຈຳການຕາມກຳນົດ. ຖ້າກັບຊ້າ ຫຼື ບໍ່ຍື່ນໃບລາຕາມລະບຽບ ຍິນດີໃຫ້ນັບເປັນ "ຂາດ".</span></label>'+
+  '<div class="actions"><button type="submit" class="btn primary" id="f-submit">ສົ່ງໃບລາໃຫ້ຫົວໜ້າອະນຸມັດ</button><p class="form-msg" id="f-msg" role="status"></p></div>'+
+  '</form>';
+}
+/* checked in today and this leave takes away today's meal allowance: remind to check out */
+function attWarn(r){
+  const a=ui.att,it=a&&a.items?a.items.find(x=>String(x.id)===String(r.officerId)):null;
+  if(!it||!it.present||!TYPES[r.type].deduct||r.startDate>today()||(r.endDate||r.startDate)<today())return null;
+  return {lv:'warn',tx:'ທ່ານລົງເວລາເຂົ້າມື້ນີ້ແລ້ວ: ຖ້າລາມື້ນີ້ ໃຫ້ກົດ "ອອກເວລາ" ທີ່ໜ້າຫຼັກ ເພື່ອບໍ່ໃຫ້ນັບອັດຕາກິນມື້ນີ້'};
+}
+function dyn(){
+  const f=$('#lf');if(!f)return;
+  const t=TYPES[draft.type],k=kindOf(draft.type),pks=!!String(draft.pksReplacement||'').trim();
+  const show={half:k==='half'&&draft.type!=='ອຊ',range:t.kind==='range',time:t.kind==='time',reasonOther:draft.reason==='ອື່ນໆ',order:draft.reason==='ວຽກ ປກສ',retro:draft.filing==='retro',pks:!!t.pks,emerg:draft.type!=='ອຊ'};
+  f.querySelectorAll('[data-show]').forEach(el=>{el.hidden=!show[el.dataset.show];});
+  $('#l-start').textContent=t.kind==='range'?'ວັນທີເລີ່ມຕົ້ນ':'ວັນທີ';
+  const ho=$('#f-ho');ho.disabled=pks;$('#f-ho-note').hidden=!pks;
+  const r=draftRec();
+  $('#f-period').innerHTML=t.kind==='range'?'ລາພັກທັງໝົດ <b class="big">'+qty(r)+' ວັນ</b> · '+esc(period(r)):'<b>'+esc(period(r))+'</b> · '+qtyText(r);
+  const cs=checks(r),w=attWarn(r);if(w)cs.splice(cs.length-1,0,w);
+  $('#f-checks').innerHTML=checksHTML(cs);
+}
+/* keep the handover list in step with the officer list after a background reload */
+function syncFormLists(){const s=$('#f-ho');if(!s||!draft)return;s.innerHTML=handoverOpts(draft);dyn();}
+function onField(e){
+  const el=e.target;
+  if(el.id==='me-sel'){if(e.type!=='change')return;state.me=el.value;draft=newDraft();save();render();return;}
+  if(el.id==='reg-month'){if(e.type!=='change')return;ui.month=el.value;render();return;}
+  if(el.id==='pf-t'){const x=$('.pf-time');if(x)x.hidden=el.value!=='ອຊ';return;}
+  if(el.id&&el.id.indexOf('cm-')===0){const u=pendUI[el.id.slice(3)]=pendUI[el.id.slice(3)]||{};u.comment=el.value;u.arm=null;return;}
+  if(el.id&&el.id.indexOf('by-')===0){const u=pendUI[el.id.slice(3)]=pendUI[el.id.slice(3)]||{};u.by=el.value;return;}
+  if(!el.closest||!el.closest('#lf')||!el.name)return;
+  const n=el.name;
+  if(n==='kind'||n==='session'){
+    if(!el.checked)return;
+    const v=n==='session'?el.value:{half:'ລ1',day:'ລ3',multi:'ລ4'}[el.value];
+    if(n==='kind'&&el.value==='half'&&(draft.type==='ລ2'||draft.type==='ອຊ'))return dyn();
+    draft.type=v;
+    if(n==='kind'&&v==='ລ1'){const s=f=>document.querySelector('#lf input[name="session"][value="'+f+'"]');s('ລ1').checked=true;}
+    if(v==='ລ4'&&draft.endDate<=draft.startDate){draft.endDate=addDays(draft.startDate,1);$('#f-end').value=draft.endDate;}
+  }
+  else if(n==='attach'){draft.attachMed=el.value==='med'||el.value==='both';draft.attachOrder=el.value==='order'||el.value==='both';}
+  else if(el.type==='checkbox')draft[n]=el.checked;
+  else if(el.type==='radio'){if(!el.checked)return;draft[n]=el.value;}
+  else draft[n]=el.value;
+  if(n==='startDate'&&TYPES[draft.type].kind==='range'&&draft.endDate<draft.startDate){draft.endDate=draft.startDate;$('#f-end').value=draft.endDate;}
+  $('#f-msg').textContent='';
+  dyn();
+}
+document.addEventListener('input',onField);
+document.addEventListener('change',onField);
+
 /* ---------- paper form ---------- */
 function paperHTML(r,interactive){
   const o=off(r.officerId),dec=r.decision;
@@ -1456,7 +1548,7 @@ function paperHTML(r,interactive){
     '<div class="paper-meta"><span>ທະນາຄານພັດທະນາລາວ<br>ໜ່ວຍບໍລິການ ເມືອງຄອບ</span><span>ເລກທີ: <b class="no" style="color:var(--fg)">'+(r.no||'……/ລພ.ໜບຄ')+'</b><br>ວັນທີຍື່ນ: '+(r.submittedAt?fDT(r.submittedAt):'—')+'</span></div>'+
     '<h3 class="paper-title">ໃບຂໍລາພັກ ຕຳຫຼວດປະຈຳການ</h3><p class="to">ຮຽນ: ຫົວໜ້າໜ່ວຍບໍລິການ ເມືອງຄອບ</p>'+
     '<p class="sect">ກ. ຜູ້ຂໍລາພັກ</p><dl class="pkv">'+row('ຍົດ, ຊື່ ແລະ ນາມສະກຸນ',esc(full(o)))+row('ເບີໂທ',esc(o.phone||'—'))+row('ໜ່ວຍງານຕົ້ນສັງກັດ','ປກສ ເມືອງຄອບ')+'</dl>'+
-    '<p class="sect">ຂ. ລາຍລະອຽດການລາ</p><dl class="pkv">'+row('ປະເພດ','<b>'+r.type+'</b> '+TYPES[r.type].label)+row('ໄລຍະເວລາ',esc(period(r))+' · '+qtyText(r))+row('ເຫດຜົນ',esc(reasonText(r))+(r.orderNo?' · ຄຳສັ່ງເລກທີ '+esc(r.orderNo):''))+row('ລາຍລະອຽດ',esc(r.detail||'—'))+row('ສະຖານທີ່ທີ່ຈະໄປ',esc(r.destination||'—'))+row('ເບີຕິດຕໍ່ໃນເວລາລາ',esc(r.phone||'—'))+row('ຕິດຕໍ່ສຸກເສີນ',r.emergencyPhone?esc(r.emergencyName)+' · '+esc(r.emergencyPhone):'—')+row('ເອກະສານຕິດຄັດ',attach)+row('ການຍື່ນ',r.filing==='retro'?'ຍ້ອນຫຼັງ (ສຸກເສີນ) · ໂທແຈ້ງ '+esc(r.callTo)+' ເວລາ '+esc(r.callTime):'ລ່ວງໜ້າ')+'</dl>'+
+    '<p class="sect">ຂ. ລາຍລະອຽດການລາ</p><dl class="pkv">'+row('ປະເພດ','<b>'+r.type+'</b> '+TYPES[r.type].label)+row('ໄລຍະເວລາ',esc(period(r))+' · '+qtyText(r))+row('ເຫດຜົນ',esc(reasonText(r))+(r.orderNo?' · ຄຳສັ່ງເລກທີ '+esc(r.orderNo):''))+row('ລາຍລະອຽດ',esc(r.detail||'—'))+row('ສະຖານທີ່ທີ່ຈະໄປ',esc(r.destination||'—'))+row('ເບີໂທຕິດຕໍ່',esc(r.phone||'—'))+row('ຕິດຕໍ່ສຸກເສີນ',r.emergencyPhone?esc(r.emergencyName)+' · '+esc(r.emergencyPhone):'—')+row('ເອກະສານຕິດຄັດ',attach)+row('ການຍື່ນ',r.filing==='retro'?'ຍ້ອນຫຼັງ (ສຸກເສີນ) · ໂທແຈ້ງ '+esc(r.callTo)+' ເວລາ '+esc(r.callTime):'ລ່ວງໜ້າ')+'</dl>'+
     '<p class="sect">ຄ. ການມອບໜ້າທີ່</p><dl class="pkv">'+row('ຜູ້ຮັບມອບ / ຜູ້ແທນ',esc(coverName(r)))+(TYPES[r.type].pks?row('ແຈ້ງ ປກສ',r.pksNotified?'ແຈ້ງແລ້ວ'+(r.pksContact?' · '+esc(r.pksContact):''):'ຍັງບໍ່ແຈ້ງ'):'')+'</dl>'+
     '<p class="sect">ງ. ການອະນຸມັດ</p>'+decHTML+
     '<p class="sect">ຈ. ລາຍງານກັບຄືນ</p><dl class="pkv">'+row('ກັບມາປະຈຳການ',r.returnedAt?fDT(r.returnedAt):'—')+row('ກັບຊ້າກວ່າກຳນົດ',r.returnedAt?(r.late>0.01?'ແມ່ນ · '+fmtH(r.late):'ບໍ່'):'—')+row('ບັນທຶກໂດຍ',by)+(r.returnBy==='self'?row('ຫົວໜ້າຮັບຊາບ',r.returnAck===false?'ລໍຖ້າຮັບຊາບ':'ຮັບຊາບແລ້ວ'+(r.returnAckAt?' · '+fDT(r.returnAckAt):'')):'')+'</dl>'+selfret+
@@ -1512,29 +1604,6 @@ function regExportHTML(ym){
 let toastT=0;
 function toast(t){const el=$('#toast');el.textContent=t;el.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>{el.hidden=true;},2800);}
 
-function onField(e){
-  const el=e.target;
-  if(el.id==='me-sel'){if(e.type!=='change')return;state.me=el.value;draft=newDraft();save();render();return;}
-  if(el.id==='reg-month'){if(e.type!=='change')return;ui.month=el.value;render();return;}
-  if(el.id==='pf-t'){const x=$('.pf-time');if(x)x.hidden=el.value!=='ອຊ';return;}
-  if(el.id&&el.id.indexOf('cm-')===0){const u=pendUI[el.id.slice(3)]=pendUI[el.id.slice(3)]||{};u.comment=el.value;u.arm=null;return;}
-  if(el.id&&el.id.indexOf('by-')===0){const u=pendUI[el.id.slice(3)]=pendUI[el.id.slice(3)]||{};u.by=el.value;return;}
-  if(!el.closest||!el.closest('#lf')||!el.name)return;
-  const n=el.name;
-  if(el.type==='checkbox')draft[n]=el.checked;
-  else if(el.type==='radio'){if(!el.checked)return;draft[n]=el.value;}
-  else draft[n]=el.value;
-  if(n==='type'){
-    const t=TYPES[draft.type];
-    if(draft.type==='ໜທ'){draft.reason='ວຽກ ປກສ';const rr=document.querySelector('#lf input[name="reason"][value="ວຽກ ປກສ"]');if(rr)rr.checked=true;}
-    if(t.kind==='range'&&diffDays(draft.startDate,draft.endDate)<(draft.type==='ລ4'?1:0)){draft.endDate=addDays(draft.startDate,draft.type==='ລ4'?1:0);$('#f-end').value=draft.endDate;}
-  }
-  if(n==='startDate'&&TYPES[draft.type].kind==='range'&&draft.endDate<draft.startDate){draft.endDate=draft.startDate;$('#f-end').value=draft.endDate;}
-  $('#f-msg').textContent='';
-  dyn();
-}
-document.addEventListener('input',onField);
-document.addEventListener('change',onField);
 document.addEventListener('submit',e=>{
   if(e.target.id==='login'){
     e.preventDefault();
@@ -1560,7 +1629,7 @@ render();
 refresh(true);
 /* keep data fresh: reload when the tab comes back, and every 2 minutes when idle on a non-form view */
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&ui.loaded)refresh(true);});
-setInterval(()=>{if(document.hidden||!ui.loaded||ui.busy)return;const cur=state.tab[state.role];if(cur==='new'||cur==='approve'||cur==='staff'||!$('#modal').hidden)return;refresh(true);},120000);
+setInterval(()=>{if(document.hidden||!ui.loaded||ui.busy)return;const cur=state.tab[state.role];if(cur==='approve'||cur==='staff'||!$('#modal').hidden)return;refresh(true);},120000);
 
 })();
 </script>

@@ -35,12 +35,12 @@ function leaveApi(reqJson) {
     } else if (action === 'logout') {
       if (req.token) CacheService.getScriptCache().remove('lv_tok_' + req.token);
       authed = false;
-    } else if (action === 'attCheckin') {
+    } else if (action === 'attCheckin' || action === 'attCheckout') {
       var alk = LockService.getScriptLock();
       alk.waitLock(20000);
       try {
         var ast = leaveReadStore_();
-        out.already = leaveAttCheckin_(ast, data.id);
+        out.already = action === 'attCheckin' ? leaveAttCheckin_(ast, data.id) : leaveAttCheckout_(ast, data.id);
         out.att = leaveAttData_(ast);
       } finally {
         alk.releaseLock();
@@ -227,9 +227,10 @@ function lvAttName_(names, o) {
 }
 function leaveAttData_(store, a) {
   a = a || lvAttRead_();
-  var T = lvAttToday_(), M = T.slice(0, 7);
+  var T = lvAttToday_(), M = T.slice(0, 7), lg = lvAttLog_(T);
   var items = (store.officers || []).filter(function (o) { return o.active !== false; }).map(function (o) {
-    var n = lvAttName_(a.names, o), it = {id: String(o.id), name: n, present: false, month: 0, money: 0};
+    var n = lvAttName_(a.names, o), L = lg.map[String(o.id)] || {};
+    var it = {id: String(o.id), name: n, present: false, month: 0, money: 0, inAt: L.inAt || '', outAt: L.outAt || ''};
     if (n) a.rows.forEach(function (r) {
       if (r.name !== n || !r.present) return;
       if (r.date === T) it.present = true;
@@ -252,6 +253,7 @@ function leaveAttCheckin_(store, id) {
   var todays = a.rows.filter(function (r) { return r.date === T; });
   var mine = todays.filter(function (r) { return r.name === n; })[0];
   if (mine && mine.present) return true;
+  lvAttLogSet_(T, o, n, 'in');
   if (mine) {
     a.sh.getRange(mine.row, 3, 1, 3).setValues([[LV_ATT_PRESENT, a.rate, a.rate]]);
   } else {
@@ -262,6 +264,42 @@ function leaveAttCheckin_(store, id) {
   }
   SpreadsheetApp.flush();
   return false;
+}
+
+/** ອອກເວລາມື້ນີ້: ປ່ຽນແຖວມື້ນີ້ເປັນ "ຂາດ/ພັກ" ແລະ ລວມເງິນ 0 (ບໍ່ໄດ້ອັດຕາກິນມື້ນີ້). ຄືນ true ຖ້າຍັງບໍ່ໄດ້ລົງເວລາ */
+function leaveAttCheckout_(store, id) {
+  var o = lvOff_(store, id);
+  if (!o || o.active === false) throw new Error('ບໍ່ພົບລາຍຊື່ເຈົ້າໜ້າທີ່');
+  var a = lvAttRead_(), n = lvAttName_(a.names, o), T = lvAttToday_();
+  var mine = n ? a.rows.filter(function (r) { return r.date === T && r.name === n; })[0] : null;
+  if (!mine || !mine.present) return true;
+  a.sh.getRange(mine.row, 3, 1, 3).setValues([[LV_ATT_ABSENT, a.rate, 0]]);
+  lvAttLogSet_(T, o, n, 'out');
+  SpreadsheetApp.flush();
+  return false;
+}
+/* ເວລາເຂົ້າ/ອອກ ເກັບແຍກໃນແຜ່ນ "LeaveAttLog" (ເຊື່ອງ) ເພາະລະບົບປະຈຳການຂຽນທັບແຜ່ນ "ລາຍງານ" ທັງໝົດ 5 ຖັນ */
+var LV_ATT_LOG_SHEET = 'LeaveAttLog';
+function lvAttLogSheet_() {
+  var ss = leaveSS_(), sh = ss.getSheetByName(LV_ATT_LOG_SHEET);
+  if (!sh) {
+    sh = ss.insertSheet(LV_ATT_LOG_SHEET);
+    sh.appendRow(['ວັນທີ', 'ລະຫັດ', 'ຊື່', 'ເວລາເຂົ້າ', 'ເວລາອອກ']);
+    sh.hideSheet();
+  }
+  return sh;
+}
+function lvAttLog_(T) {
+  var sh = lvAttLogSheet_(), last = sh.getLastRow(), map = {};
+  var vals = last > 1 ? sh.getRange(2, 1, last - 1, 5).getDisplayValues() : [];
+  vals.forEach(function (v, i) { if (String(v[0]) === T) map[String(v[1])] = {row: i + 2, inAt: String(v[3] || ''), outAt: String(v[4] || '')}; });
+  return {sh: sh, map: map};
+}
+function lvAttLogSet_(T, o, n, kind) {
+  var lg = lvAttLog_(T), cur = lg.map[String(o.id)], t = Utilities.formatDate(new Date(), LEAVE_TZ, 'HH:mm');
+  var row = [T, String(o.id), n, kind === 'in' ? t : (cur ? cur.inAt : ''), kind === 'out' ? t : ''];
+  var rng = cur ? lg.sh.getRange(cur.row, 1, 1, 5) : lg.sh.getRange(lg.sh.getLastRow() + 1, 1, 1, 5);
+  rng.setNumberFormat('@').setValues([row]);
 }
 
 /* ---------- auth ---------- */

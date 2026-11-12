@@ -49,9 +49,16 @@ const clockText=()=>{const d=new Date();return p2(d.getHours())+':'+p2(d.getMinu
 const kip=n=>Math.round(Number(n)||0).toLocaleString('en-US');
 function attPart(it,mine){
   if(!it)return '';
-  if(it.present)return '<span class="pill good">'+ic('check')+' ລົງເວລາແລ້ວ</span>';
-  if(mine)return '<button class="btn primary sm att-in" type="button" data-act="att-in" data-id="'+esc(it.id)+'">'+ic('clock')+' ລົງເວລາເຂົ້າ</button>';
-  return '<span class="pill">ຍັງບໍ່ລົງເວລາ</span>';
+  const id=esc(it.id);
+  if(it.present){
+    const pill='<span class="pill good">'+ic('check')+' ລົງເວລາແລ້ວ'+(it.inAt?' '+esc(it.inAt):'')+'</span>';
+    if(!mine)return pill;
+    if(ui.confirmOut===String(it.id))return '<span class="att-ask">ອອກເວລາ ແລະ ບໍ່ຮັບອັດຕາກິນມື້ນີ້?</span><button class="btn danger sm" type="button" data-act="att-out-go" data-id="'+id+'">ຢືນຢັນອອກເວລາ</button><button class="btn ghost sm" type="button" data-act="att-out-no">ຍົກເລີກ</button>';
+    return pill+'<button class="btn ghost sm att-out" type="button" data-act="att-out" data-id="'+id+'">'+ic('back')+' ອອກເວລາ</button>';
+  }
+  const outPill=it.outAt?'<span class="pill warn">ອອກເວລາແລ້ວ '+esc(it.outAt)+'</span>':'';
+  if(mine)return outPill+'<button class="btn primary sm att-in" type="button" data-act="att-in" data-id="'+id+'">'+ic('clock')+' ລົງເວລາເຂົ້າ</button>';
+  return outPill||'<span class="pill">ຍັງບໍ່ລົງເວລາ</span>';
 }
 function board(){
   const a=ui.att,ok=a&&!a.err&&a.items,off2=state.role==='officer';
@@ -64,7 +71,7 @@ function board(){
     note+
     (me&&me.name?'<p class="att-me">ເດືອນນີ້ທ່ານປະຈຳການ <b>'+me.month+' ມື້</b> · ອັດຕາກິນ <b>'+kip(me.money)+' ກີບ</b></p>':'')+
     '<ul class="board">'+
-    actives().map(o=>{
+    actives().filter(o=>!off2||String(o.id)===String(state.me)).map(o=>{
       const s=todayStatus(o),it=by[String(o.id)],mine=off2&&String(o.id)===String(state.me);
       const sub=[s[2],(it&&it.name&&!off2?'ເດືອນນີ້ ປະຈຳການ '+it.month+' ມື້':'')].filter(Boolean).join(' · ');
       const leavePill=(!ok||s[1]!=='good')?'<span class="pill '+s[1]+'">'+esc(s[0])+'</span>':'';
@@ -254,6 +261,12 @@ const H={
     if(String(id)!==String(state.me))return;
     api('attCheckin',{id:id},b).then(res=>{ui.att=res.att||ui.att;render();toast(res.already?'ທ່ານລົງເວລາມື້ນີ້ໄວ້ແລ້ວ':'ລົງເວລາເຂົ້າປະຈຳການແລ້ວ · '+clockText().slice(0,5));}).catch(e=>fail(e));
   },
+  'att-out':id=>{ui.confirmOut=String(id);render();},
+  'att-out-no':()=>{ui.confirmOut=null;render();},
+  'att-out-go':(id,b)=>{
+    if(String(id)!==String(state.me))return;
+    api('attCheckout',{id:id},b).then(res=>{ui.confirmOut=null;ui.att=res.att||ui.att;render();toast(res.already?'ທ່ານຍັງບໍ່ໄດ້ລົງເວລາມື້ນີ້':'ອອກເວລາແລ້ວ · '+clockText().slice(0,5)+' · ມື້ນີ້ບໍ່ນັບອັດຕາກິນ');}).catch(e=>{ui.confirmOut=null;render();fail(e);});
+  },
   'mine-range':id=>{ui.mineRange=id;render();},
   reload:()=>{ui.loadErr='';render();refresh(true);},
   refresh:()=>refresh(false),
@@ -263,7 +276,7 @@ const H={
     else{state.role='officer';state.me=id;state.tab.officer='home';draft=newDraft();}
     prefs.chosen=true;save();render();window.scrollTo(0,0);
   },
-  tab:id=>{state.tab[state.role]=id;ui.confirmDel=null;save();render();window.scrollTo(0,0);},
+  tab:id=>{state.tab[state.role]=id;ui.confirmDel=null;ui.confirmOut=null;save();render();window.scrollTo(0,0);if(state.role==='officer'&&id==='new'&&ui.loaded)refresh(true);},
   logout:()=>{api('logout').catch(()=>{}).then(()=>{setToken('');render();toast('ອອກຈາກລະບົບແລ້ວ');});},
   detail:id=>openDetail(id),
   close:()=>closeModal(),

@@ -3,8 +3,8 @@ var LV_RATE = 50000;
 var LV_HEAD = 'ຫົວໜ້າໜ່ວຍບໍລິການ ເມືອງຄອບ';
 var LV_TYPES = {
   'ອຊ': {label: 'ອອກຊົ່ວຄາວ', kind: 'time', deduct: false},
-  'ລ1': {label: 'ເຄິ່ງມື້ເຊົ້າ', kind: 'fixed', from: '08:30', to: '11:30', deduct: false},
-  'ລ2': {label: 'ເຄິ່ງມື້ບ່າຍ', kind: 'fixed', from: '12:30', to: '17:00', deduct: false},
+  'ລ1': {label: 'ເຄິ່ງມື້ເຊົ້າ', kind: 'fixed', from: '08:00', to: '12:00', deduct: false},
+  'ລ2': {label: 'ເຄິ່ງມື້ແລງ', kind: 'fixed', from: '13:00', to: '17:00', deduct: false},
   'ລ3': {label: 'ໝົດມື້', kind: 'day', deduct: true},
   'ລ4': {label: 'ຫຼາຍມື້', kind: 'range', deduct: true},
   'ໜທ': {label: 'ໜ້າທີ່ ປກສ', kind: 'range', deduct: true}
@@ -22,7 +22,7 @@ function lvAddDays_(s, n) { return lvIsoMs_(lvMs_(s.slice(0, 10)) + n * 864e5); 
 function lvSpan_(r) {
   var t = LV_TYPES[r.type], end = r.endDate || r.startDate;
   if (t.kind === 'time') return [r.startDate + 'T' + r.timeFrom, r.startDate + 'T' + r.timeTo];
-  if (t.kind === 'fixed') return [r.startDate + 'T' + t.from, r.startDate + 'T' + t.to];
+  if (t.kind === 'fixed') return [r.startDate + 'T' + (r.timeFrom || t.from), r.startDate + 'T' + (r.timeTo || t.to)];
   return [r.startDate + 'T00:00', end + 'T23:59'];
 }
 function lvExpRet_(r) {
@@ -92,6 +92,8 @@ function lvClean_(src) {
   else if (t.kind === 'time') { if (!lvValidTime_(r.timeFrom) || !lvValidTime_(r.timeTo) || r.timeTo <= r.timeFrom) throw new Error('ເວລາບໍ່ຖືກຕ້ອງ'); }
   else { r.timeFrom = ''; r.timeTo = ''; }
   if (r.filing !== 'retro') r.filing = 'advance';
+  r.pksReplacement = r.pksReplacement.trim();
+  if (r.pksReplacement) r.handoverTo = ''; // ມີຜູ້ແທນຈາກ ປກສ: ບໍ່ບັນທຶກຜູ້ຮັບມອບໜ້າທີ່
   return r;
 }
 

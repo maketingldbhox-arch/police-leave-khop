@@ -52,7 +52,7 @@ function ensureMe(){if(!actives().find(o=>String(o.id)===String(state.me))){cons
 const demo={store:null,pass:'1234',toks:{},att:{}};
 function demoAtt(){
   const T=today(),s=demo.store;
-  return {date:T,rate:50000,items:s.officers.filter(o=>o.active).map(o=>{const k=o.id;demo.att[k]=demo.att[k]||{month:7};const p=!!demo.att[k][T];return {id:String(o.id),name:(o.rank?o.rank+' ':'')+o.name,present:p,month:demo.att[k].month+(p?1:0),money:(demo.att[k].month+(p?1:0))*50000};})};
+  return {date:T,rate:50000,items:s.officers.filter(o=>o.active).map(o=>{const k=o.id;demo.att[k]=demo.att[k]||{month:7};const p=!!demo.att[k][T],L=(demo.att[k].log||{})[T]||{};return {id:String(o.id),name:(o.rank?o.rank+' ':'')+o.name,present:p,inAt:L.inAt||'',outAt:L.outAt||'',month:demo.att[k].month+(p?1:0),money:(demo.att[k].month+(p?1:0))*50000};})};
 }
 function demoCall(req){
   return new Promise(res=>setTimeout(()=>{
@@ -61,7 +61,7 @@ function demoCall(req){
       const a=req.action,d=req.data||{};let authed=!!demo.toks[req.token];const out={ok:true};
       if(a==='login'){if(d.pass!==demo.pass){res({ok:false,err:'ລະຫັດບໍ່ຖືກຕ້ອງ. ລອງໃໝ່ອີກຄັ້ງ.'});return;}const t='t'+Math.random().toString(36).slice(2);demo.toks[t]=1;out.token=t;authed=true;}
       else if(a==='logout'){delete demo.toks[req.token];authed=false;}
-      else if(a==='attCheckin'){const k=d.id;demo.att[k]=demo.att[k]||{month:7};out.already=!!demo.att[k][today()];demo.att[k][today()]=1;out.att=demoAtt();res(JSON.parse(JSON.stringify(out)));return;}
+      else if(a==='attCheckin'||a==='attCheckout'){const k=d.id,T=today(),x=demo.att[k]=demo.att[k]||{month:7},L=demo.att[k].log=demo.att[k].log||{};const t=hm(new Date());if(a==='attCheckin'){out.already=!!x[T];if(!x[T]){x[T]=1;L[T]={inAt:t,outAt:''};}}else{out.already=!x[T];if(x[T]){x[T]=0;L[T]={inAt:(L[T]||{}).inAt||'',outAt:t};}}out.att=demoAtt();res(JSON.parse(JSON.stringify(out)));return;}
       else if(a!=='load'){
         if(a==='settingsSave'&&d.pass){if(!authed)throw new Error('AUTH');if(String(d.pass).length<4)throw new Error('ລະຫັດຕ້ອງມີຢ່າງໜ້ອຍ 4 ຕົວ');demo.pass=d.pass;}
         out.id=leaveCore_(demo.store,a,d,nowL(),authed).id;
@@ -99,11 +99,11 @@ function api(action,data,btn){
 }
 function fail(e,msgEl){const t=e&&e.message||String(e);if(msgEl){msgEl.textContent=t;msgEl.className='form-msg bad';}toast(t);}
 function refresh(quiet){
-  return api('load').then(res=>{ui.att=res.att||{err:'OLD'};render();if(!quiet)toast('ອັບເດດຂໍ້ມູນແລ້ວ');}).catch(e=>{if(!ui.loaded){ui.loadErr=e.message;render();}else toast(e.message);});
+  return api('load').then(res=>{ui.att=res.att||{err:'OLD'};if(state.role==='officer'&&state.tab.officer==='new'&&$('#lf'))syncFormLists();else render();if(!quiet)toast('ອັບເດດຂໍ້ມູນແລ້ວ');}).catch(e=>{if(!ui.loaded){ui.loadErr=e.message;render();}else toast(e.message);});
 }
 function newDraft(){
   const o=off(state.me),h=actives().find(x=>x.id!==o.id);
-  return {officerId:o.id,type:'ລ2',startDate:addDays(today(),1),endDate:addDays(today(),2),timeFrom:'09:00',timeTo:'10:00',reason:'',reasonOther:'',orderNo:'',detail:'',destination:'',phone:o.phone||'',emergencyName:'',emergencyPhone:'',attachMed:false,attachOrder:false,filing:'advance',callTime:'',callTo:'ຫົວໜ້າໜ່ວຍບໍລິການ',handoverTo:h?h.id:'',pksReplacement:'',pksNotified:false,pksContact:'',pledge:false,linkId:null};
+  return {officerId:o.id,type:'ລ3',startDate:addDays(today(),1),endDate:addDays(today(),2),timeFrom:'09:00',timeTo:'10:00',reason:'',reasonOther:'',orderNo:'',detail:'',destination:'',phone:o.phone||'',emergencyName:'',emergencyPhone:'',attachMed:false,attachOrder:false,filing:'advance',callTime:'',callTo:'ຫົວໜ້າໜ່ວຍບໍລິການ',handoverTo:h?h.id:'',pksReplacement:'',pksNotified:false,pksContact:'',pledge:false,linkId:null};
 }
 let draft=null;
 function draftRec(){
@@ -112,5 +112,7 @@ function draftRec(){
   if(t.kind!=='range')r.endDate=r.startDate;
   if(t.kind==='fixed'){r.timeFrom=t.from;r.timeTo=t.to;}
   if(t.kind==='day'||t.kind==='range'){r.timeFrom='';r.timeTo='';}
+  r.pksReplacement=String(r.pksReplacement||'').trim();
+  if(r.pksReplacement)r.handoverTo='';
   return r;
 }

@@ -23,4 +23,4 @@ render();
 refresh(true);
 /* keep data fresh: reload when the tab comes back, and every 2 minutes when idle on a non-form view */
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&ui.loaded)refresh(true);});
-setInterval(()=>{if(document.hidden||!ui.loaded||ui.busy)return;const cur=state.tab[state.role];if(cur==='new'||cur==='approve'||cur==='staff'||!$('#modal').hidden)return;refresh(true);},120000);
+setInterval(()=>{if(document.hidden||!ui.loaded||ui.busy)return;const cur=state.tab[state.role];if(cur==='approve'||cur==='staff'||!$('#modal').hidden)return;refresh(true);},120000);
