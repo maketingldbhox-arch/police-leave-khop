@@ -11,6 +11,19 @@ document.addEventListener('submit',e=>{
   if(bad.length){msg.textContent='ຍັງສົ່ງບໍ່ໄດ້: ແກ້ໄຂ '+bad.length+' ຂໍ້ທີ່ໝາຍ ✕ ກ່ອນ.';msg.className='form-msg bad';pop({kind:'warn',title:'ຍັງສົ່ງໃບລາບໍ່ໄດ້',msg:'ແກ້ໄຂ '+bad.length+' ຂໍ້ນີ້ກ່ອນ:',list:bad.map(c=>c.tx)}).then(()=>{const c=$('#f-checks');if(c)c.scrollIntoView({block:'center'});});return;}
   if(!draft.pledge){msg.textContent='ກະລຸນາໝາຍຢັ້ງຢືນຂໍ້ມູນກ່ອນສົ່ງ.';msg.className='form-msg bad';pop({kind:'warn',title:'ຍັງສົ່ງໃບລາບໍ່ໄດ້',msg:'ກະລຸນາໝາຍຢັ້ງຢືນຂໍ້ມູນກ່ອນສົ່ງ'});return;}
   const btn=$('#f-submit'),o=off(r.officerId);
+  if(draft.editId){
+    const eid=draft.editId,ed=get(eid);
+    ask({title:'ບັນທຶກການແກ້ໄຂໃບລາ '+(ed?ed.no:'')+'?',rows:[['ປະເພດ',r.type+' '+TYPES[r.type].label],['ໄລຍະ',period(r)],['ເຫດຜົນ',r.reason]],msg:'ໃບລາຍັງລໍຖ້າຫົວໜ້າໜ່ວຍບໍລິການອະນຸມັດ',ok:'ບັນທຶກການແກ້ໄຂ'}).then(go=>{
+      if(!go)return;
+      api('edit',{id:eid,officerId:state.me,rec:r},btn).then(()=>{
+        draft=newDraft();state.tab.officer='mine';save();render();window.scrollTo(0,0);
+        const rec=get(eid);
+        openDetail(eid,'ແກ້ໄຂໃບລາ '+(rec?rec.no:'')+' ແລ້ວ · ສົ່ງອອກເປັນຮູບເພື່ອແຈ້ງໃນກຸ່ມ');
+        pop({kind:'ok',title:'ແກ້ໄຂໃບລາສຳເລັດ',rows:[['ເລກທີ',rec&&rec.no],['ປະເພດ',r.type+' '+TYPES[r.type].label],['ໄລຍະ',period(r)]],msg:'ລໍຖ້າຫົວໜ້າໜ່ວຍບໍລິການອະນຸມັດ'});
+      }).catch(err=>fail(err,msg));
+    });
+    return;
+  }
   ask({title:'ສົ່ງໃບລານີ້?',rows:[['ຜູ້ລາ',o?full(o):''],['ປະເພດ',r.type+' '+TYPES[r.type].label],['ໄລຍະ',period(r)],['ເຫດຜົນ',r.reason]],msg:'ໃບລາຈະສົ່ງໄປໃຫ້ຫົວໜ້າໜ່ວຍບໍລິການອະນຸມັດ',ok:'ສົ່ງໃບລາ'}).then(go=>{
     if(!go)return;
     api('submit',{rec:r,linkId:draft.linkId||null},btn).then(res=>{

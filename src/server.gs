@@ -60,6 +60,7 @@ function leaveApi(reqJson) {
         if (res.meta) leaveWriteMeta_(store);
         if (res.photos && res.photos.length) leaveWritePhotos_(store, res.photos);
         (res.changed || []).forEach(function (id) { leaveWriteRecord_(store, lvGet_(store, id)); });
+        (res.removed || []).forEach(function (id) { leaveDeleteRecord_(id); });
         SpreadsheetApp.flush();
         out.id = res.id;
         out.data = leaveClientData_(store, authed);
@@ -149,6 +150,12 @@ function leaveOfficersFromSystemDB_() {
       return m ? {id: String(o.id), rank: m[1], name: m[2], phone: m[3], active: true} : {id: String(o.id), rank: '', name: String(o.name), phone: '', active: true};
     });
   } catch (e) { return []; }
+}
+function leaveDeleteRecord_(id) {
+  var sh = leaveSheet_(LEAVE_LOG_SHEET), last = sh.getLastRow();
+  if (last < 2) return;
+  var ids = sh.getRange(2, 1, last - 1, 1).getValues();
+  for (var i = ids.length - 1; i >= 0; i--) if (String(ids[i][0]) === String(id)) sh.deleteRow(i + 2);
 }
 function leaveWriteRecord_(store, r) {
   if (!r) return;

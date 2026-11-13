@@ -13,11 +13,12 @@ function handoverOpts(d){
 }
 function officerNew(){
   const o=off(state.me),d=draft;
-  const link=d.linkId?get(d.linkId):null;
+  const link=d.linkId?get(d.linkId):null,ed=d.editId?get(d.editId):null,lock=link||(ed&&ed.phoneLog);
   if(d.type==='ໜທ')d.type='ລ4';
   const k=kindOf(d.type);
   return '<form id="lf" class="card form" novalidate>'+
-  '<div class="card-head"><h2>ຂຽນໃບຂໍລາພັກ</h2><p class="muted">ຜູ້ຂໍລາ: <b>'+esc(full(o))+'</b> · ປກສ ເມືອງຄອບ</p></div>'+
+  '<div class="card-head"><h2>'+(d.editId?'ແກ້ໄຂໃບຂໍລາພັກ':'ຂຽນໃບຂໍລາພັກ')+'</h2><p class="muted">ຜູ້ຂໍລາ: <b>'+esc(full(o))+'</b> · ປກສ ເມືອງຄອບ</p></div>'+
+  (d.editId?(canEdit(ed)?'<div class="note edit-note">ກຳລັງແກ້ໄຂໃບລາ <b class="no">'+esc(ed.no)+'</b> (ຍັງລໍຖ້າອະນຸມັດ) <button class="btn ghost sm" type="button" data-act="edit-cancel">ຍົກເລີກການແກ້ໄຂ</button></div>':'<div class="note edit-note bad">ໃບລາ '+esc(ed?ed.no:'')+' ຖືກພິຈາລະນາ ຫຼື ລົບແລ້ວ: ແກ້ໄຂບໍ່ໄດ້ <button class="btn ghost sm" type="button" data-act="edit-cancel">ຂຽນໃບລາໃໝ່</button></div>'):'')+
   (link?'<div class="note">ຍື່ນຍ້ອນຫຼັງ ສຳລັບການແຈ້ງທາງໂທ ວັນທີ '+fD(link.startDate)+' ເວລາ '+esc(link.callTime)+' · '+dueText(link)+'</div>':'')+
   '<fieldset class="field"><legend><span class="sec-n">1</span>ປະເພດການລາ</legend><div class="kinds">'+
     KINDS.map(x=>'<label class="type"><input type="radio" name="kind" value="'+x[0]+'"'+(k===x[0]?' checked':'')+'><span class="code">'+x[2]+'</span><span class="tl">'+x[1]+'</span><span class="tn">'+x[3]+'</span></label>').join('')+
@@ -49,7 +50,7 @@ function officerNew(){
   '</div></fieldset>'+
   '<div class="row">'+
     '<div class="field"><label for="f-att"><span class="sec-n">3</span>ເອກະສານຕິດຄັດ <span class="muted">(ບໍ່ລະບຸກໍໄດ້)</span></label><select id="f-att" name="attach">'+ATTACH.map(x=>opt(x[0],x[1],attachVal(d))).join('')+'</select></div>'+
-    '<div class="field"><label for="f-filing">ການຍື່ນ</label><select id="f-filing" name="filing"'+(link?' disabled':'')+'>'+opt('advance','ຍື່ນລ່ວງໜ້າ',d.filing)+opt('retro','ຍື່ນຍ້ອນຫຼັງ (ສຸກເສີນ)',d.filing)+'</select></div>'+
+    '<div class="field"><label for="f-filing">ການຍື່ນ</label><select id="f-filing" name="filing"'+(lock?' disabled':'')+'>'+opt('advance','ຍື່ນລ່ວງໜ້າ',d.filing)+opt('retro','ຍື່ນຍ້ອນຫຼັງ (ສຸກເສີນ)',d.filing)+'</select></div>'+
   '</div>'+
   '<div class="row" data-show="retro">'+
     '<div class="field"><label for="f-ct">ເວລາໂທແຈ້ງ</label><input type="time" id="f-ct" name="callTime" value="'+esc(d.callTime)+'"></div>'+
@@ -62,7 +63,7 @@ function officerNew(){
   '<div class="field" data-show="pks"><label class="check" for="f-pksn"><input type="checkbox" id="f-pksn" name="pksNotified"'+(d.pksNotified?' checked':'')+'><span>ແຈ້ງ ປກສ ເມືອງຄອບແລ້ວ</span></label><input id="f-pkc" name="pksContact" placeholder="ຜູ້ຮັບແຈ້ງ ແລະ ເບີໂທ" value="'+esc(d.pksContact)+'"></div>'+
   '<div class="checks-box"><h3>ກວດຕາມລະບຽບ (ອັດຕະໂນມັດ)</h3><ul class="checks" id="f-checks"></ul></div>'+
   '<label class="check pledge" for="f-pledge"><input type="checkbox" id="f-pledge" name="pledge"'+(d.pledge?' checked':'')+'><span>ຂ້າພະເຈົ້າຂໍຢັ້ງຢືນວ່າ ຂໍ້ມູນຂ້າງເທິງເປັນຄວາມຈິງ ແລະ ຈະກັບມາປະຈຳການຕາມກຳນົດ. ຖ້າກັບຊ້າ ຫຼື ບໍ່ຍື່ນໃບລາຕາມລະບຽບ ຍິນດີໃຫ້ນັບເປັນ "ຂາດ".</span></label>'+
-  '<div class="actions"><button type="submit" class="btn primary" id="f-submit">ສົ່ງໃບລາໃຫ້ຫົວໜ້າອະນຸມັດ</button><p class="form-msg" id="f-msg" role="status"></p></div>'+
+  '<div class="actions"><button type="submit" class="btn primary" id="f-submit">'+(d.editId?'ບັນທຶກການແກ້ໄຂ':'ສົ່ງໃບລາໃຫ້ຫົວໜ້າອະນຸມັດ')+'</button><p class="form-msg" id="f-msg" role="status"></p></div>'+
   '</form>';
 }
 /* checked in today and this leave takes away today's meal allowance: remind to check out */

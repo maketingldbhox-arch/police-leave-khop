@@ -404,6 +404,11 @@ main{padding-block:14px 24px}
 .pop-act .btn{flex:1;padding:12px 14px}
 .btn.danger.solid{background:var(--bad);color:#fff;border-color:var(--bad)}
 @media (prefers-reduced-motion:no-preference){.pop:not([hidden]) .pop-card{animation:pop-in .16s ease-out}@keyframes pop-in{from{opacity:0;transform:scale(.94)}}}
+/* ແກ້ໄຂ / ລົບໃບລາຂອງຕົນເອງ */
+.own-act{display:flex;flex-wrap:wrap;gap:8px;padding:0 12px 10px}
+.m-act{display:flex;flex-wrap:wrap;gap:8px}
+.edit-note{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between;background:var(--accent-soft);margin-bottom:12px}
+.edit-note.bad{background:var(--bad-soft);color:var(--bad)}
 
 </style>
 <link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
@@ -605,6 +610,27 @@ function leaveCore_(store, action, data, now, authed) {
       c.returnedAt = ''; c.returnBy = ''; c.late = 0;
       store.records.push(c);
       return {id: c.id, changed: [c.id], meta: true};
+    }
+    case 'edit': {
+      r = rec();
+      if (String(r.officerId) !== String(data.officerId)) throw new Error('ແກ້ໄຂໄດ້ສະເພາະໃບລາຂອງຕົນເອງ');
+      if (r.status !== 'pending') throw new Error('ໃບລານີ້ຖືກພິຈາລະນາແລ້ວ: ແກ້ໄຂບໍ່ໄດ້');
+      var e = lvClean_(Object.assign({}, data.rec || {}, {officerId: r.officerId}));
+      if (r.phoneLog) { e.filing = 'retro'; e.callTime = r.callTime; e.callTo = r.callTo; }
+      Object.keys(e).forEach(function (k) { r[k] = e[k]; });
+      r.editedAt = now; r.late = lvLate_(r);
+      return {id: r.id, changed: [r.id]};
+    }
+    case 'withdraw': {
+      r = rec();
+      if (String(r.officerId) !== String(data.officerId)) throw new Error('ລົບໄດ້ສະເພາະໃບລາຂອງຕົນເອງ');
+      if (r.status !== 'pending') throw new Error('ໃບລານີ້ຖືກພິຈາລະນາແລ້ວ: ລົບບໍ່ໄດ້');
+      if (r.phoneLog) { /* ຍື່ນຍ້ອນຫຼັງຈາກການແຈ້ງທາງໂທ: ກັບໄປເປັນການແຈ້ງທາງໂທຄືເກົ່າ */
+        r.status = 'phone'; r.no = ''; r.submittedAt = ''; r.editedAt = '';
+        return {id: r.id, changed: [r.id]};
+      }
+      store.records.splice(store.records.indexOf(r), 1);
+      return {id: r.id, changed: [], removed: [r.id]};
     }
     case 'selfReturn': {
       r = rec();
@@ -964,6 +990,9 @@ function pop(o){
 }
 const ask=o=>pop(Object.assign({kind:'ask',cancel:'ຍົກເລີກ',ok:'ຢືນຢັນ'},o));
 const hmNow=()=>clockText().slice(0,5);
+/* ຜູ້ຂຽນໃບລາ ແກ້ໄຂ ຫຼື ລົບໃບລາຂອງຕົນເອງໄດ້ ຂະນະທີ່ຍັງລໍຖ້າອະນຸມັດ */
+const canEdit=r=>!!r&&r.status==='pending'&&state.role==='officer'&&String(r.officerId)===String(state.me);
+const ownBtns=r=>canEdit(r)?'<button class="btn ghost sm" type="button" data-act="leave-edit" data-id="'+r.id+'">✎ ແກ້ໄຂ</button><button class="btn danger sm" type="button" data-act="leave-del" data-id="'+r.id+'">ລົບໃບລາ</button>':'';
 function refresh(quiet){
   return api('load').then(res=>{ui.att=res.att||{err:'OLD'};if(state.role==='officer'&&state.tab.officer==='new'&&$('#lf'))syncFormLists();else render();if(!quiet)toast('ອັບເດດຂໍ້ມູນແລ້ວ');}).catch(e=>{if(!ui.loaded){ui.loadErr=e.message;render();}else toast(e.message);});
 }
@@ -974,7 +1003,7 @@ function newDraft(){
 let draft=null;
 function draftRec(){
   const t=TYPES[draft.type];
-  const r=Object.assign({},draft,{id:draft.linkId||'__draft',submittedAt:nowL()});
+  const r=Object.assign({},draft,{id:draft.editId||draft.linkId||'__draft',submittedAt:nowL()});
   if(t.kind!=='range')r.endDate=r.startDate;
   if(t.kind==='fixed'){r.timeFrom=t.from;r.timeTo=t.to;}
   if(t.kind==='day'||t.kind==='range'){r.timeFrom='';r.timeTo='';}
@@ -1246,7 +1275,8 @@ function officerMine(){
   '<section class="card"><div class="card-head"><h2>ປະຫວັດໃບລາ</h2><p class="muted">'+mine.length+' ລາຍການ · ກົດເພື່ອເບິ່ງໃບລາ ຫຼື ສົ່ງອອກເປັນຮູບພາບ</p></div>'+
   (mine.length?'<ul class="list hist">'+mine.map(r=>{
     const fr=ui.fresh&&ui.fresh.has(r.id),pl=pill(r);
-    return itemRow(r,false).replace('<li>','<li class="st-'+r.status+(fr?' fresh':'')+'">').replace(pl,pl+(fr?'<span class="pill new">'+ic('bell')+' ໃໝ່</span>':''));
+    const own=ownBtns(r);
+    return itemRow(r,false).replace('<li>','<li class="st-'+r.status+(fr?' fresh':'')+'">').replace(pl,pl+(fr?'<span class="pill new">'+ic('bell')+' ໃໝ່</span>':'')).replace(/<\/li>$/,(own?'<div class="li-act own-act">'+own+'</div>':'')+'</li>');
   }).join('')+'</ul>':empty('ຍັງບໍ່ມີໃບລາ'))+'</section>';
 }
 
@@ -1423,6 +1453,25 @@ const H={
     });
   },
   'mine-range':id=>{ui.mineRange=id;render();},
+  'leave-edit':id=>{
+    const r=get(id);if(!canEdit(r)){pop({kind:'warn',title:'ແກ້ໄຂບໍ່ໄດ້',msg:'ແກ້ໄຂໄດ້ສະເພາະໃບລາຂອງຕົນເອງ ທີ່ຍັງລໍຖ້າອະນຸມັດ'});return;}
+    const d=newDraft();Object.keys(d).forEach(k=>{if(r[k]!==undefined&&r[k]!==null)d[k]=r[k];});
+    d.endDate=r.endDate||r.startDate;d.editId=r.id;d.linkId=null;d.pledge=false;draft=d;
+    closeModal();state.tab.officer='new';save();render();window.scrollTo(0,0);
+  },
+  'edit-cancel':()=>{draft=newDraft();save();render();window.scrollTo(0,0);},
+  'leave-del':(id,b)=>{
+    const r=get(id);if(!canEdit(r)){pop({kind:'warn',title:'ລົບບໍ່ໄດ້',msg:'ລົບໄດ້ສະເພາະໃບລາຂອງຕົນເອງ ທີ່ຍັງລໍຖ້າອະນຸມັດ'});return;}
+    const ph=!!r.phoneLog;
+    ask({kind:'warn',title:'ລົບໃບລາ '+r.no+'?',rows:[['ປະເພດ',r.type+' '+TYPES[r.type].label],['ໄລຍະ',period(r)],['ເຫດຜົນ',reasonText(r)]],
+      msg:ph?'ໃບລານີ້ຍື່ນຍ້ອນຫຼັງ ຈາກການແຈ້ງທາງໂທ: ເມື່ອລົບ ຈະກັບໄປເປັນ "ແຈ້ງທາງໂທ" ແລະ ຕ້ອງຍື່ນໃບລາຍ້ອນຫຼັງໃໝ່':'ລົບແລ້ວ ກູ້ຄືນບໍ່ໄດ້',ok:'ລົບໃບລາ',danger:true}).then(go=>{
+      if(!go)return;
+      const no=r.no;
+      api('withdraw',{id:id,officerId:state.me},b).then(()=>{closeModal();if(draft&&draft.editId===id)draft=newDraft();save();render();
+        pop({kind:'ok',title:'ລົບໃບລາ '+no+' ແລ້ວ',msg:ph?'ກັບໄປເປັນການແຈ້ງທາງໂທ: ກະລຸນາຍື່ນໃບລາຍ້ອນຫຼັງໃໝ່':'ໃບລານີ້ຖືກລົບອອກຈາກລະບົບແລ້ວ'});
+      }).catch(e=>fail(e));
+    });
+  },
   reload:()=>{ui.loadErr='';render();refresh(true);},
   refresh:()=>refresh(false),
   who:()=>{prefs.chosen=false;save();render();window.scrollTo(0,0);},
@@ -1570,11 +1619,12 @@ function handoverOpts(d){
 }
 function officerNew(){
   const o=off(state.me),d=draft;
-  const link=d.linkId?get(d.linkId):null;
+  const link=d.linkId?get(d.linkId):null,ed=d.editId?get(d.editId):null,lock=link||(ed&&ed.phoneLog);
   if(d.type==='ໜທ')d.type='ລ4';
   const k=kindOf(d.type);
   return '<form id="lf" class="card form" novalidate>'+
-  '<div class="card-head"><h2>ຂຽນໃບຂໍລາພັກ</h2><p class="muted">ຜູ້ຂໍລາ: <b>'+esc(full(o))+'</b> · ປກສ ເມືອງຄອບ</p></div>'+
+  '<div class="card-head"><h2>'+(d.editId?'ແກ້ໄຂໃບຂໍລາພັກ':'ຂຽນໃບຂໍລາພັກ')+'</h2><p class="muted">ຜູ້ຂໍລາ: <b>'+esc(full(o))+'</b> · ປກສ ເມືອງຄອບ</p></div>'+
+  (d.editId?(canEdit(ed)?'<div class="note edit-note">ກຳລັງແກ້ໄຂໃບລາ <b class="no">'+esc(ed.no)+'</b> (ຍັງລໍຖ້າອະນຸມັດ) <button class="btn ghost sm" type="button" data-act="edit-cancel">ຍົກເລີກການແກ້ໄຂ</button></div>':'<div class="note edit-note bad">ໃບລາ '+esc(ed?ed.no:'')+' ຖືກພິຈາລະນາ ຫຼື ລົບແລ້ວ: ແກ້ໄຂບໍ່ໄດ້ <button class="btn ghost sm" type="button" data-act="edit-cancel">ຂຽນໃບລາໃໝ່</button></div>'):'')+
   (link?'<div class="note">ຍື່ນຍ້ອນຫຼັງ ສຳລັບການແຈ້ງທາງໂທ ວັນທີ '+fD(link.startDate)+' ເວລາ '+esc(link.callTime)+' · '+dueText(link)+'</div>':'')+
   '<fieldset class="field"><legend><span class="sec-n">1</span>ປະເພດການລາ</legend><div class="kinds">'+
     KINDS.map(x=>'<label class="type"><input type="radio" name="kind" value="'+x[0]+'"'+(k===x[0]?' checked':'')+'><span class="code">'+x[2]+'</span><span class="tl">'+x[1]+'</span><span class="tn">'+x[3]+'</span></label>').join('')+
@@ -1606,7 +1656,7 @@ function officerNew(){
   '</div></fieldset>'+
   '<div class="row">'+
     '<div class="field"><label for="f-att"><span class="sec-n">3</span>ເອກະສານຕິດຄັດ <span class="muted">(ບໍ່ລະບຸກໍໄດ້)</span></label><select id="f-att" name="attach">'+ATTACH.map(x=>opt(x[0],x[1],attachVal(d))).join('')+'</select></div>'+
-    '<div class="field"><label for="f-filing">ການຍື່ນ</label><select id="f-filing" name="filing"'+(link?' disabled':'')+'>'+opt('advance','ຍື່ນລ່ວງໜ້າ',d.filing)+opt('retro','ຍື່ນຍ້ອນຫຼັງ (ສຸກເສີນ)',d.filing)+'</select></div>'+
+    '<div class="field"><label for="f-filing">ການຍື່ນ</label><select id="f-filing" name="filing"'+(lock?' disabled':'')+'>'+opt('advance','ຍື່ນລ່ວງໜ້າ',d.filing)+opt('retro','ຍື່ນຍ້ອນຫຼັງ (ສຸກເສີນ)',d.filing)+'</select></div>'+
   '</div>'+
   '<div class="row" data-show="retro">'+
     '<div class="field"><label for="f-ct">ເວລາໂທແຈ້ງ</label><input type="time" id="f-ct" name="callTime" value="'+esc(d.callTime)+'"></div>'+
@@ -1619,7 +1669,7 @@ function officerNew(){
   '<div class="field" data-show="pks"><label class="check" for="f-pksn"><input type="checkbox" id="f-pksn" name="pksNotified"'+(d.pksNotified?' checked':'')+'><span>ແຈ້ງ ປກສ ເມືອງຄອບແລ້ວ</span></label><input id="f-pkc" name="pksContact" placeholder="ຜູ້ຮັບແຈ້ງ ແລະ ເບີໂທ" value="'+esc(d.pksContact)+'"></div>'+
   '<div class="checks-box"><h3>ກວດຕາມລະບຽບ (ອັດຕະໂນມັດ)</h3><ul class="checks" id="f-checks"></ul></div>'+
   '<label class="check pledge" for="f-pledge"><input type="checkbox" id="f-pledge" name="pledge"'+(d.pledge?' checked':'')+'><span>ຂ້າພະເຈົ້າຂໍຢັ້ງຢືນວ່າ ຂໍ້ມູນຂ້າງເທິງເປັນຄວາມຈິງ ແລະ ຈະກັບມາປະຈຳການຕາມກຳນົດ. ຖ້າກັບຊ້າ ຫຼື ບໍ່ຍື່ນໃບລາຕາມລະບຽບ ຍິນດີໃຫ້ນັບເປັນ "ຂາດ".</span></label>'+
-  '<div class="actions"><button type="submit" class="btn primary" id="f-submit">ສົ່ງໃບລາໃຫ້ຫົວໜ້າອະນຸມັດ</button><p class="form-msg" id="f-msg" role="status"></p></div>'+
+  '<div class="actions"><button type="submit" class="btn primary" id="f-submit">'+(d.editId?'ບັນທຶກການແກ້ໄຂ':'ສົ່ງໃບລາໃຫ້ຫົວໜ້າອະນຸມັດ')+'</button><p class="form-msg" id="f-msg" role="status"></p></div>'+
   '</form>';
 }
 /* checked in today and this leave takes away today's meal allowance: remind to check out */
@@ -1697,7 +1747,7 @@ function paperHTML(r,interactive){
 function openDetail(id,note){
   const r=get(id);if(!r)return;
   $('#modal-body').innerHTML='<div class="mtool">'+(note?'<span class="mnote">'+esc(note)+'</span>':'<span class="no">'+(r.no||'ແຈ້ງທາງໂທ')+'</span>')+
-    '<button class="btn primary sm" type="button" data-act="export-leave" data-id="'+r.id+'">ສົ່ງອອກເປັນຮູບພາບ</button></div>'+paperHTML(r,true);
+    '<span class="m-act"><button class="btn primary sm" type="button" data-act="export-leave" data-id="'+r.id+'">ສົ່ງອອກເປັນຮູບພາບ</button>'+ownBtns(r)+'</span></div>'+paperHTML(r,true);
   const m=$('#modal');m.hidden=false;m.scrollTop=0;$('#modal .close').focus();
 }
 function closeModal(){$('#modal').hidden=true;}
@@ -1757,6 +1807,19 @@ document.addEventListener('submit',e=>{
   if(bad.length){msg.textContent='ຍັງສົ່ງບໍ່ໄດ້: ແກ້ໄຂ '+bad.length+' ຂໍ້ທີ່ໝາຍ ✕ ກ່ອນ.';msg.className='form-msg bad';pop({kind:'warn',title:'ຍັງສົ່ງໃບລາບໍ່ໄດ້',msg:'ແກ້ໄຂ '+bad.length+' ຂໍ້ນີ້ກ່ອນ:',list:bad.map(c=>c.tx)}).then(()=>{const c=$('#f-checks');if(c)c.scrollIntoView({block:'center'});});return;}
   if(!draft.pledge){msg.textContent='ກະລຸນາໝາຍຢັ້ງຢືນຂໍ້ມູນກ່ອນສົ່ງ.';msg.className='form-msg bad';pop({kind:'warn',title:'ຍັງສົ່ງໃບລາບໍ່ໄດ້',msg:'ກະລຸນາໝາຍຢັ້ງຢືນຂໍ້ມູນກ່ອນສົ່ງ'});return;}
   const btn=$('#f-submit'),o=off(r.officerId);
+  if(draft.editId){
+    const eid=draft.editId,ed=get(eid);
+    ask({title:'ບັນທຶກການແກ້ໄຂໃບລາ '+(ed?ed.no:'')+'?',rows:[['ປະເພດ',r.type+' '+TYPES[r.type].label],['ໄລຍະ',period(r)],['ເຫດຜົນ',r.reason]],msg:'ໃບລາຍັງລໍຖ້າຫົວໜ້າໜ່ວຍບໍລິການອະນຸມັດ',ok:'ບັນທຶກການແກ້ໄຂ'}).then(go=>{
+      if(!go)return;
+      api('edit',{id:eid,officerId:state.me,rec:r},btn).then(()=>{
+        draft=newDraft();state.tab.officer='mine';save();render();window.scrollTo(0,0);
+        const rec=get(eid);
+        openDetail(eid,'ແກ້ໄຂໃບລາ '+(rec?rec.no:'')+' ແລ້ວ · ສົ່ງອອກເປັນຮູບເພື່ອແຈ້ງໃນກຸ່ມ');
+        pop({kind:'ok',title:'ແກ້ໄຂໃບລາສຳເລັດ',rows:[['ເລກທີ',rec&&rec.no],['ປະເພດ',r.type+' '+TYPES[r.type].label],['ໄລຍະ',period(r)]],msg:'ລໍຖ້າຫົວໜ້າໜ່ວຍບໍລິການອະນຸມັດ'});
+      }).catch(err=>fail(err,msg));
+    });
+    return;
+  }
   ask({title:'ສົ່ງໃບລານີ້?',rows:[['ຜູ້ລາ',o?full(o):''],['ປະເພດ',r.type+' '+TYPES[r.type].label],['ໄລຍະ',period(r)],['ເຫດຜົນ',r.reason]],msg:'ໃບລາຈະສົ່ງໄປໃຫ້ຫົວໜ້າໜ່ວຍບໍລິການອະນຸມັດ',ok:'ສົ່ງໃບລາ'}).then(go=>{
     if(!go)return;
     api('submit',{rec:r,linkId:draft.linkId||null},btn).then(res=>{

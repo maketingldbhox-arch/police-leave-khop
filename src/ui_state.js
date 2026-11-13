@@ -119,6 +119,9 @@ function pop(o){
 }
 const ask=o=>pop(Object.assign({kind:'ask',cancel:'ຍົກເລີກ',ok:'ຢືນຢັນ'},o));
 const hmNow=()=>clockText().slice(0,5);
+/* ຜູ້ຂຽນໃບລາ ແກ້ໄຂ ຫຼື ລົບໃບລາຂອງຕົນເອງໄດ້ ຂະນະທີ່ຍັງລໍຖ້າອະນຸມັດ */
+const canEdit=r=>!!r&&r.status==='pending'&&state.role==='officer'&&String(r.officerId)===String(state.me);
+const ownBtns=r=>canEdit(r)?'<button class="btn ghost sm" type="button" data-act="leave-edit" data-id="'+r.id+'">✎ ແກ້ໄຂ</button><button class="btn danger sm" type="button" data-act="leave-del" data-id="'+r.id+'">ລົບໃບລາ</button>':'';
 function refresh(quiet){
   return api('load').then(res=>{ui.att=res.att||{err:'OLD'};if(state.role==='officer'&&state.tab.officer==='new'&&$('#lf'))syncFormLists();else render();if(!quiet)toast('ອັບເດດຂໍ້ມູນແລ້ວ');}).catch(e=>{if(!ui.loaded){ui.loadErr=e.message;render();}else toast(e.message);});
 }
@@ -129,7 +132,7 @@ function newDraft(){
 let draft=null;
 function draftRec(){
   const t=TYPES[draft.type];
-  const r=Object.assign({},draft,{id:draft.linkId||'__draft',submittedAt:nowL()});
+  const r=Object.assign({},draft,{id:draft.editId||draft.linkId||'__draft',submittedAt:nowL()});
   if(t.kind!=='range')r.endDate=r.startDate;
   if(t.kind==='fixed'){r.timeFrom=t.from;r.timeTo=t.to;}
   if(t.kind==='day'||t.kind==='range'){r.timeFrom='';r.timeTo='';}

@@ -123,6 +123,27 @@ function leaveCore_(store, action, data, now, authed) {
       store.records.push(c);
       return {id: c.id, changed: [c.id], meta: true};
     }
+    case 'edit': {
+      r = rec();
+      if (String(r.officerId) !== String(data.officerId)) throw new Error('ແກ້ໄຂໄດ້ສະເພາະໃບລາຂອງຕົນເອງ');
+      if (r.status !== 'pending') throw new Error('ໃບລານີ້ຖືກພິຈາລະນາແລ້ວ: ແກ້ໄຂບໍ່ໄດ້');
+      var e = lvClean_(Object.assign({}, data.rec || {}, {officerId: r.officerId}));
+      if (r.phoneLog) { e.filing = 'retro'; e.callTime = r.callTime; e.callTo = r.callTo; }
+      Object.keys(e).forEach(function (k) { r[k] = e[k]; });
+      r.editedAt = now; r.late = lvLate_(r);
+      return {id: r.id, changed: [r.id]};
+    }
+    case 'withdraw': {
+      r = rec();
+      if (String(r.officerId) !== String(data.officerId)) throw new Error('ລົບໄດ້ສະເພາະໃບລາຂອງຕົນເອງ');
+      if (r.status !== 'pending') throw new Error('ໃບລານີ້ຖືກພິຈາລະນາແລ້ວ: ລົບບໍ່ໄດ້');
+      if (r.phoneLog) { /* ຍື່ນຍ້ອນຫຼັງຈາກການແຈ້ງທາງໂທ: ກັບໄປເປັນການແຈ້ງທາງໂທຄືເກົ່າ */
+        r.status = 'phone'; r.no = ''; r.submittedAt = ''; r.editedAt = '';
+        return {id: r.id, changed: [r.id]};
+      }
+      store.records.splice(store.records.indexOf(r), 1);
+      return {id: r.id, changed: [], removed: [r.id]};
+    }
     case 'selfReturn': {
       r = rec();
       var started = now >= lvSpan_(r)[0];

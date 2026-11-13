@@ -181,3 +181,8 @@ main{padding-block:14px 24px}
 .pop-act .btn{flex:1;padding:12px 14px}
 .btn.danger.solid{background:var(--bad);color:#fff;border-color:var(--bad)}
 @media (prefers-reduced-motion:no-preference){.pop:not([hidden]) .pop-card{animation:pop-in .16s ease-out}@keyframes pop-in{from{opacity:0;transform:scale(.94)}}}
+/* ແກ້ໄຂ / ລົບໃບລາຂອງຕົນເອງ */
+.own-act{display:flex;flex-wrap:wrap;gap:8px;padding:0 12px 10px}
+.m-act{display:flex;flex-wrap:wrap;gap:8px}
+.edit-note{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between;background:var(--accent-soft);margin-bottom:12px}
+.edit-note.bad{background:var(--bad-soft);color:var(--bad)}

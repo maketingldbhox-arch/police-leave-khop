@@ -142,7 +142,8 @@ function officerMine(){
   '<section class="card"><div class="card-head"><h2>ປະຫວັດໃບລາ</h2><p class="muted">'+mine.length+' ລາຍການ · ກົດເພື່ອເບິ່ງໃບລາ ຫຼື ສົ່ງອອກເປັນຮູບພາບ</p></div>'+
   (mine.length?'<ul class="list hist">'+mine.map(r=>{
     const fr=ui.fresh&&ui.fresh.has(r.id),pl=pill(r);
-    return itemRow(r,false).replace('<li>','<li class="st-'+r.status+(fr?' fresh':'')+'">').replace(pl,pl+(fr?'<span class="pill new">'+ic('bell')+' ໃໝ່</span>':''));
+    const own=ownBtns(r);
+    return itemRow(r,false).replace('<li>','<li class="st-'+r.status+(fr?' fresh':'')+'">').replace(pl,pl+(fr?'<span class="pill new">'+ic('bell')+' ໃໝ່</span>':'')).replace(/<\/li>$/,(own?'<div class="li-act own-act">'+own+'</div>':'')+'</li>');
   }).join('')+'</ul>':empty('ຍັງບໍ່ມີໃບລາ'))+'</section>';
 }
 
@@ -319,6 +320,25 @@ const H={
     });
   },
   'mine-range':id=>{ui.mineRange=id;render();},
+  'leave-edit':id=>{
+    const r=get(id);if(!canEdit(r)){pop({kind:'warn',title:'ແກ້ໄຂບໍ່ໄດ້',msg:'ແກ້ໄຂໄດ້ສະເພາະໃບລາຂອງຕົນເອງ ທີ່ຍັງລໍຖ້າອະນຸມັດ'});return;}
+    const d=newDraft();Object.keys(d).forEach(k=>{if(r[k]!==undefined&&r[k]!==null)d[k]=r[k];});
+    d.endDate=r.endDate||r.startDate;d.editId=r.id;d.linkId=null;d.pledge=false;draft=d;
+    closeModal();state.tab.officer='new';save();render();window.scrollTo(0,0);
+  },
+  'edit-cancel':()=>{draft=newDraft();save();render();window.scrollTo(0,0);},
+  'leave-del':(id,b)=>{
+    const r=get(id);if(!canEdit(r)){pop({kind:'warn',title:'ລົບບໍ່ໄດ້',msg:'ລົບໄດ້ສະເພາະໃບລາຂອງຕົນເອງ ທີ່ຍັງລໍຖ້າອະນຸມັດ'});return;}
+    const ph=!!r.phoneLog;
+    ask({kind:'warn',title:'ລົບໃບລາ '+r.no+'?',rows:[['ປະເພດ',r.type+' '+TYPES[r.type].label],['ໄລຍະ',period(r)],['ເຫດຜົນ',reasonText(r)]],
+      msg:ph?'ໃບລານີ້ຍື່ນຍ້ອນຫຼັງ ຈາກການແຈ້ງທາງໂທ: ເມື່ອລົບ ຈະກັບໄປເປັນ "ແຈ້ງທາງໂທ" ແລະ ຕ້ອງຍື່ນໃບລາຍ້ອນຫຼັງໃໝ່':'ລົບແລ້ວ ກູ້ຄືນບໍ່ໄດ້',ok:'ລົບໃບລາ',danger:true}).then(go=>{
+      if(!go)return;
+      const no=r.no;
+      api('withdraw',{id:id,officerId:state.me},b).then(()=>{closeModal();if(draft&&draft.editId===id)draft=newDraft();save();render();
+        pop({kind:'ok',title:'ລົບໃບລາ '+no+' ແລ້ວ',msg:ph?'ກັບໄປເປັນການແຈ້ງທາງໂທ: ກະລຸນາຍື່ນໃບລາຍ້ອນຫຼັງໃໝ່':'ໃບລານີ້ຖືກລົບອອກຈາກລະບົບແລ້ວ'});
+      }).catch(e=>fail(e));
+    });
+  },
   reload:()=>{ui.loadErr='';render();refresh(true);},
   refresh:()=>refresh(false),
   who:()=>{prefs.chosen=false;save();render();window.scrollTo(0,0);},

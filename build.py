@@ -21,6 +21,9 @@ segB = L(478, 679)
 segC = L(707, 780)
 assert "row('ເບີຕິດຕໍ່ໃນເວລາລາ'" in segC
 segC = segC.replace("row('ເບີຕິດຕໍ່ໃນເວລາລາ'", "row('ເບີໂທຕິດຕໍ່'")
+_ex = "'<button class=\"btn primary sm\" type=\"button\" data-act=\"export-leave\" data-id=\"'+r.id+'\">ສົ່ງອອກເປັນຮູບພາບ</button></div>'"
+assert segC.count(_ex) == 1
+segC = segC.replace(_ex, "'<span class=\"m-act\"><button class=\"btn primary sm\" type=\"button\" data-act=\"export-leave\" data-id=\"'+r.id+'\">ສົ່ງອອກເປັນຮູບພາບ</button>'+ownBtns(r)+'</span></div>'")
 onf = L(885, 907)
 assert onf.startswith('function onField(e){') and onf.rstrip().endswith("document.addEventListener('change',onField);")
 
