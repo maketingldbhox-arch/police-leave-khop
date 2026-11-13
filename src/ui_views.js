@@ -13,6 +13,7 @@ const ICON={
   sheet:'<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M4 9h16M4 15h16M10 3v18"/>',
   refresh:'<path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/>',
   user:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
+  bell:'<path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 21a2 2 0 0 0 4 0"/>',
   cam:'<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>'
 };
 const ic=k=>'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+ICON[k]+'</svg>';
@@ -89,9 +90,10 @@ function officerHome(){
   return '<div><p class="hello">ສະບາຍດີ, '+esc(full(o))+'</p><p class="muted" style="margin:0">ຕ້ອງການເຮັດຫຍັງມື້ນີ້?</p></div>'+
     out.map(r=>{const er=expRet(r),over=now>er;return '<div class="card alert go"><div><b>'+(over?'ເກີນກຳນົດກັບແລ້ວ':'ທ່ານກຳລັງລາຢູ່')+'</b> · <span class="no">'+esc(r.no)+'</span><p>'+r.type+' '+TYPES[r.type].label+' · ກຳນົດກັບ '+fDate(er)+'</p></div><div class="actions"><button class="btn primary" type="button" data-act="self-return" data-id="'+r.id+'">'+ic('back')+' ກັບຄືນແລ້ວ</button></div></div>';}).join('')+
     ph.map(r=>'<div class="card alert"><div><b>ທ່ານໄດ້ແຈ້ງລາທາງໂທ</b><p>'+dueText(r)+'</p></div><div class="actions"><button class="btn primary" type="button" data-act="write-retro" data-id="'+r.id+'">ຂຽນໃບລາຍ້ອນຫຼັງ</button></div></div>').join('')+
+    decisionCards(unseen(),true)+
     board()+
     '<div class="tiles one">'+
-      tile('list','ໃບລາຂອງຂ້ອຍ',pend?pend+' ໃບ ລໍຖ້າອະນຸມັດ':'ສະຫຼຸບຈຳນວນຄັ້ງທີ່ລາ · ເບິ່ງສະຖານະ ແລະ ສົ່ງອອກຮູບ','tab','mine',out.length+ph.length)+
+      tile('list','ໃບລາຂອງຂ້ອຍ',pend?pend+' ໃບ ລໍຖ້າອະນຸມັດ':'ສະຫຼຸບຈຳນວນຄັ້ງທີ່ລາ · ເບິ່ງສະຖານະ ແລະ ສົ່ງອອກຮູບ','tab','mine',out.length+ph.length+unseen().length)+
     '</div>';
 }
 function headHome(){
@@ -136,9 +138,45 @@ function officerMine(){
   const out=mine.filter(r=>r.status==='approved'&&now>=span(r)[0]);
   return out.map(r=>{const er=expRet(r),over=now>er;return '<div class="card alert go"><div><b>'+(over?'ເກີນກຳນົດກັບແລ້ວ':'ກຳລັງລາຢູ່')+'</b> · <span class="no">'+esc(r.no)+'</span><p>'+r.type+' '+TYPES[r.type].label+' · '+esc(period(r))+' · ກຳນົດກັບ '+fDate(er)+'</p><p class="muted">ເມື່ອກັບຮອດຫ້ອງການ ກົດ "ກັບຄືນ" ລະບົບຈະບັນທຶກເວລາ ແລະ ແຈ້ງຫົວໜ້າໜ່ວຍບໍລິການ</p></div><div class="actions"><button class="btn primary" type="button" data-act="self-return" data-id="'+r.id+'">ກັບຄືນ</button><button class="btn ghost" type="button" data-act="detail" data-id="'+r.id+'">ເປີດໃບລາ</button></div></div>';}).join('')+
   ph.map(r=>'<div class="card alert"><div><b>ທ່ານໄດ້ແຈ້ງລາທາງໂທລະສັບ</b><p>'+r.type+' '+TYPES[r.type].label+' · '+esc(period(r))+' · ໂທແຈ້ງ '+esc(r.callTo)+' ເວລາ '+esc(r.callTime)+'</p><p>'+dueText(r)+(r.returnedAt?' · ກັບມາແລ້ວ '+fDT(r.returnedAt):'')+'</p></div><div class="actions">'+(canSelfReturn(r)?'<button class="btn primary" type="button" data-act="self-return" data-id="'+r.id+'">ກັບຄືນ</button>':'')+'<button class="btn '+(canSelfReturn(r)?'ghost':'primary')+'" type="button" data-act="write-retro" data-id="'+r.id+'">ຂຽນໃບລາຍ້ອນຫຼັງ</button></div></div>').join('')+
+  decisionCards(mine.filter(r=>ui.fresh&&ui.fresh.has(r.id)),false)+
   mineSummary(mine)+
   '<section class="card"><div class="card-head"><h2>ປະຫວັດໃບລາ</h2><p class="muted">'+mine.length+' ລາຍການ · ກົດເພື່ອເບິ່ງໃບລາ ຫຼື ສົ່ງອອກເປັນຮູບພາບ</p></div>'+
-  (mine.length?'<ul class="list">'+mine.map(r=>itemRow(r,false)).join('')+'</ul>':empty('ຍັງບໍ່ມີໃບລາ'))+'</section>';
+  (mine.length?'<ul class="list hist">'+mine.map(r=>{
+    const fr=ui.fresh&&ui.fresh.has(r.id),pl=pill(r);
+    return itemRow(r,false).replace('<li>','<li class="st-'+r.status+(fr?' fresh':'')+'">').replace(pl,pl+(fr?'<span class="pill new">'+ic('bell')+' ໃໝ່</span>':''));
+  }).join('')+'</ul>':empty('ຍັງບໍ່ມີໃບລາ'))+'</section>';
+}
+
+/* ---------- ແຈ້ງເຕືອນຜົນການອະນຸມັດ (ຈື່ໄວ້ໃນເຄື່ອງນີ້ວ່າເບິ່ງແລ້ວ) ---------- */
+const SEEN_KEY='ldb-khop-leave-seen-v1';
+function seenMap(){try{return JSON.parse(localStorage.getItem(SEEN_KEY)||'{}')||{};}catch(e){return {};}}
+function seenSave(m){try{localStorage.setItem(SEEN_KEY,JSON.stringify(m));}catch(e){}}
+const decKey=r=>r.id+'@'+((r.decision&&r.decision.at)||'');
+const isDecided=r=>!!(r.decision&&['approved','rejected','absent'].indexOf(r.decision.result)>=0);
+function unseen(){
+  const me=String(state.me),m=seenMap(),mine=state.records.filter(r=>String(r.officerId)===me&&isDecided(r));
+  if(!m['__init:'+me]){ // first run on this device: only decisions from the last 3 days count as new
+    const cut=Date.now()-3*864e5;
+    mine.forEach(r=>{const t=new Date(r.decision.at).getTime();if(!(t>=cut))m[decKey(r)]=1;});
+    m['__init:'+me]=1;seenSave(m);
+  }
+  return mine.filter(r=>!m[decKey(r)]);
+}
+function takeFresh(){
+  const u=unseen();if(!u.length)return;
+  ui.fresh=ui.fresh||new Set();const m=seenMap();
+  u.forEach(r=>{ui.fresh.add(r.id);m[decKey(r)]=1;});seenSave(m);
+}
+function decisionCards(list,home){
+  if(!list.length)return '';
+  return list.map(r=>{
+    const res=r.decision.result,ok=res==='approved';
+    const head=ok?'ໃບລາຂອງທ່ານໄດ້ຮັບການອະນຸມັດແລ້ວ':(res==='absent'?'ໃບລາຖືກນັບເປັນ "ຂາດ"':'ໃບລາຂອງທ່ານບໍ່ໄດ້ຮັບອະນຸມັດ');
+    return '<div class="card alert decision '+(ok?'ok':'no')+'"><span class="dec-ic">'+ic(ok?'check':'bell')+'</span><div><b>'+head+'</b> · <span class="no">'+esc(r.no||'')+'</span>'+
+      '<p>'+r.type+' '+TYPES[r.type].label+' · '+esc(period(r))+'</p>'+
+      (r.decision.comment?'<p class="muted">ຄຳເຫັນ: '+esc(r.decision.comment)+'</p>':'')+'</div>'+
+      (home?'<div class="actions"><button class="btn '+(ok?'primary':'ghost')+' sm" type="button" data-act="tab" data-id="mine">ເບິ່ງໃບລາ</button></div>':'')+'</div>';
+  }).join('');
 }
 
 /* ---------- ຕັ້ງຄ່າ: ລາຍຊື່ເຈົ້າໜ້າທີ່ (ມີຮູບ) ---------- */
@@ -214,7 +252,8 @@ function tabsFor(head){
   const recs=state.records,now=new Date();
   if(!head){
     const myN=recs.filter(r=>String(r.officerId)===String(state.me)&&(r.status==='phone'||(r.status==='approved'&&span(r)[0]<=now))).length;
-    return [['home','ໜ້າຫຼັກ','home',0],['new','ຂຽນໃບລາ','pen',0],['mine','ໃບລາຂອງຂ້ອຍ','list',myN]];
+    const nu=unseen().length;
+    return [['home','ໜ້າຫຼັກ','home',0],['new','ຂຽນໃບລາ','pen',0],['mine','ໃບລາຂອງຂ້ອຍ','list',myN+nu,nu>0]];
   }
   const pend=recs.filter(r=>r.status==='pending').length;
   const trackN=recs.filter(r=>r.status==='phone').length+recs.filter(r=>r.status==='approved'&&span(r)[0]<=now).length+unacked().length;
@@ -233,7 +272,7 @@ function renderNav(tabs,cur){
   const n=$('#bnav');
   if(!tabs){n.hidden=true;return;}
   n.hidden=false;
-  n.innerHTML='<div class="bnav-in">'+tabs.map(t=>'<button type="button" data-act="tab" data-id="'+t[0]+'"'+(t[0]===cur?' aria-current="page"':'')+'>'+ic(t[2])+'<span>'+t[1]+'</span>'+(t[3]?'<span class="badge">'+t[3]+'</span>':'')+'</button>').join('')+'</div>';
+  n.innerHTML='<div class="bnav-in">'+tabs.map(t=>'<button type="button" data-act="tab" data-id="'+t[0]+'"'+(t[0]===cur?' aria-current="page"':'')+'>'+ic(t[2])+'<span>'+t[1]+'</span>'+(t[3]?'<span class="badge'+(t[4]?' alert':'')+'">'+t[3]+'</span>':'')+'</button>').join('')+'</div>';
 }
 function render(){
   const app=$('#app');
@@ -246,6 +285,7 @@ function render(){
   if(!prefs.chosen){app.innerHTML=whoView();renderNav(null);return;}
   if(!draft||String(draft.officerId)!==String(state.me))draft=newDraft();
   const head=state.role==='head';
+  if(!head&&state.tab.officer==='mine')takeFresh();
   const tabs=tabsFor(head);
   let cur=state.tab[state.role];
   if(!tabs.find(t=>t[0]===cur))cur=state.tab[state.role]='home';
@@ -273,10 +313,10 @@ const H={
   who:()=>{prefs.chosen=false;save();render();window.scrollTo(0,0);},
   pick:id=>{
     if(id==='__head'){state.role='head';state.tab.head='home';}
-    else{state.role='officer';state.me=id;state.tab.officer='home';draft=newDraft();}
+    else{state.role='officer';state.me=id;state.tab.officer='home';ui.fresh=null;draft=newDraft();}
     prefs.chosen=true;save();render();window.scrollTo(0,0);
   },
-  tab:id=>{state.tab[state.role]=id;ui.confirmDel=null;ui.confirmOut=null;save();render();window.scrollTo(0,0);if(state.role==='officer'&&id==='new'&&ui.loaded)refresh(true);},
+  tab:id=>{if(id!=='mine')ui.fresh=null;state.tab[state.role]=id;ui.confirmDel=null;ui.confirmOut=null;save();render();window.scrollTo(0,0);if(state.role==='officer'&&id==='new'&&ui.loaded)refresh(true);},
   logout:()=>{api('logout').catch(()=>{}).then(()=>{setToken('');render();toast('ອອກຈາກລະບົບແລ້ວ');});},
   detail:id=>openDetail(id),
   close:()=>closeModal(),

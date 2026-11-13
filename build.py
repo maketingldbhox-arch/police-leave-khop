@@ -12,6 +12,8 @@ segA = segA.replace("'ລ2':{label:'ເຄິ່ງມື້ບ່າຍ',note:'
 segA = segA.replace("if(t.kind==='fixed')return [dt(r.startDate,t.from),dt(r.startDate,t.to)];", "if(t.kind==='fixed')return [dt(r.startDate,r.timeFrom||t.from),dt(r.startDate,r.timeTo||t.to)];")
 segA = segA.replace("if(t.kind==='fixed')return 'ວັນ'+wd(r.startDate)+' ທີ '+fD(r.startDate)+' ('+t.from+'–'+t.to+')';", "if(t.kind==='fixed')return 'ວັນ'+wd(r.startDate)+' ທີ '+fD(r.startDate)+' ('+(r.timeFrom||t.from)+'–'+(r.timeTo||t.to)+')';")
 segA = segA.replace("'ລ1':'ລາເຄິ່ງມື້ຊ່ວງເຊົ້າ','ລ2':'ລາເຄິ່ງມື້ຊ່ວງບ່າຍ'", "'ລ1':'ລາເຄິ່ງມື້ຊ່ວງເຊົ້າ','ລ2':'ລາເຄິ່ງມື້ຊ່ວງແລງ'")
+segA = segA.replace("approved:{t:'ອະນຸມັດແລ້ວ',c:'accent'}", "approved:{t:'ອະນຸມັດແລ້ວ',c:'good'}").replace("returned:{t:'ກັບຄືນແລ້ວ',c:'good'}", "returned:{t:'ກັບຄືນແລ້ວ',c:'accent'}")
+assert "approved:{t:'ອະນຸມັດແລ້ວ',c:'good'}" in segA and "returned:{t:'ກັບຄືນແລ້ວ',c:'accent'}" in segA
 segA = segA.replace("back='ໃຫ້ກັບມາປະຈຳການ 12:30 ແລະ ພາກຄ່ຳ 18:00.'", "back='ໃຫ້ກັບມາປະຈຳການ 13:00 ແລະ ພາກຄ່ຳ 18:00.'")
 for k in ["note:'08:00–12:00'", "note:'13:00–17:00'", "r.timeFrom||t.from),dt(", "(r.timeFrom||t.from)+'–'", "ຊ່ວງແລງ'", "13:00 ແລະ"]:
     assert k in segA, k

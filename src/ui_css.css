@@ -142,3 +142,24 @@ main{padding-block:14px 24px}
 /* ---- check-out ---- */
 .att-ask{font-size:13.5px;color:var(--bad);font-weight:600}
 .btn.att-out svg{width:16px;height:16px}
+/* ---- decision notices & coloured leave history ---- */
+.bnav .badge.alert,.tile .badge.alert{background:var(--bad);color:#fff;box-shadow:0 0 0 2px var(--surface)}
+@media (prefers-reduced-motion:no-preference){.bnav .badge.alert{animation:bump .6s ease-out 2}@keyframes bump{50%{transform:scale(1.25)}}}
+.card.decision{display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;border-left:5px solid var(--good);background:var(--good-soft)}
+.card.decision.no{border-left-color:var(--bad);background:var(--bad-soft)}
+.card.decision>div:nth-child(2){flex:1 1 220px;min-width:0}
+.card.decision p{margin:4px 0 0}
+.dec-ic{flex:none;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:var(--good);color:#fff}
+.card.decision.no .dec-ic{background:var(--bad)}
+.dec-ic svg{width:20px;height:20px}
+.list.hist>li{border-left:5px solid transparent;border-radius:6px;padding-left:4px}
+.list.hist>li.st-approved{border-left-color:var(--good)}
+.list.hist>li.st-returned{border-left-color:var(--accent)}
+.list.hist>li.st-rejected,.list.hist>li.st-absent{border-left-color:var(--bad)}
+.list.hist>li.st-pending,.list.hist>li.st-phone{border-left-color:#e0b000}
+.list.hist>li.fresh{background:var(--accent-soft)}
+.pill.warn{background:#fff3c2;color:#7a5a00}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .pill.warn{background:#3a3000;color:#ffd659}}
+:root[data-theme="dark"] .pill.warn{background:#3a3000;color:#ffd659}
+.pill.new{background:var(--bad);color:#fff;margin-left:6px;gap:3px}
+.pill.new svg{width:13px;height:13px}
