@@ -54,7 +54,6 @@ function attPart(it,mine){
   if(it.present){
     const pill='<span class="pill good">'+ic('check')+' ລົງເວລາແລ້ວ'+(it.inAt?' '+esc(it.inAt):'')+'</span>';
     if(!mine)return pill;
-    if(ui.confirmOut===String(it.id))return '<span class="att-ask">ອອກເວລາ ແລະ ບໍ່ຮັບອັດຕາກິນມື້ນີ້?</span><button class="btn danger sm" type="button" data-act="att-out-go" data-id="'+id+'">ຢືນຢັນອອກເວລາ</button><button class="btn ghost sm" type="button" data-act="att-out-no">ຍົກເລີກ</button>';
     return pill+'<button class="btn ghost sm att-out" type="button" data-act="att-out" data-id="'+id+'">'+ic('back')+' ອອກເວລາ</button>';
   }
   const outPill=it.outAt?'<span class="pill warn">ອອກເວລາແລ້ວ '+esc(it.outAt)+'</span>':'';
@@ -299,13 +298,25 @@ function render(){
 const H={
   'att-in':(id,b)=>{
     if(String(id)!==String(state.me))return;
-    api('attCheckin',{id:id},b).then(res=>{ui.att=res.att||ui.att;render();toast(res.already?'ທ່ານລົງເວລາມື້ນີ້ໄວ້ແລ້ວ':'ລົງເວລາເຂົ້າປະຈຳການແລ້ວ · '+clockText().slice(0,5));}).catch(e=>fail(e));
+    const o=off(id),who=o?full(o):'';
+    ask({title:'ລົງເວລາເຂົ້າປະຈຳການ?',rows:[['ຊື່',who],['ວັນທີ','ວັນ'+wd(today())+' '+fD(today())],['ເວລາ',hmNow()]],ok:'ລົງເວລາເຂົ້າ'}).then(go=>{
+      if(!go)return;
+      api('attCheckin',{id:id},b).then(res=>{ui.att=res.att||ui.att;render();
+        if(res.already)pop({kind:'warn',title:'ທ່ານລົງເວລາມື້ນີ້ໄວ້ແລ້ວ',msg:'ບໍ່ຕ້ອງລົງເວລາຊ້ຳ'});
+        else pop({kind:'ok',title:'ລົງເວລາເຂົ້າສຳເລັດ',rows:[['ຊື່',who],['ເວລາເຂົ້າ',hmNow()]],msg:'ຂໍໃຫ້ປະຕິບັດໜ້າທີ່ດ້ວຍຄວາມຮັບຜິດຊອບ'});
+      }).catch(e=>fail(e));
+    });
   },
-  'att-out':id=>{ui.confirmOut=String(id);render();},
-  'att-out-no':()=>{ui.confirmOut=null;render();},
-  'att-out-go':(id,b)=>{
+  'att-out':(id,b)=>{
     if(String(id)!==String(state.me))return;
-    api('attCheckout',{id:id},b).then(res=>{ui.confirmOut=null;ui.att=res.att||ui.att;render();toast(res.already?'ທ່ານຍັງບໍ່ໄດ້ລົງເວລາມື້ນີ້':'ອອກເວລາແລ້ວ · '+clockText().slice(0,5)+' · ມື້ນີ້ບໍ່ນັບອັດຕາກິນ');}).catch(e=>{ui.confirmOut=null;render();fail(e);});
+    const o=off(id),who=o?full(o):'';
+    ask({kind:'warn',title:'ອອກເວລາ?',msg:'ເມື່ອອອກເວລາ ມື້ນີ້ຈະບໍ່ນັບອັດຕາກິນ (ຂາດ/ພັກ · 0 ກີບ). ຖ້າກົດຜິດ ກົດ "ລົງເວລາເຂົ້າ" ຄືນໄດ້.',rows:[['ຊື່',who],['ເວລາ',hmNow()]],ok:'ຢືນຢັນອອກເວລາ',danger:true}).then(go=>{
+      if(!go)return;
+      api('attCheckout',{id:id},b).then(res=>{ui.att=res.att||ui.att;render();
+        if(res.already)pop({kind:'warn',title:'ທ່ານຍັງບໍ່ໄດ້ລົງເວລາມື້ນີ້',msg:'ບໍ່ມີການລົງເວລາເຂົ້າໃຫ້ອອກ'});
+        else pop({kind:'ok',title:'ອອກເວລາສຳເລັດ',rows:[['ຊື່',who],['ເວລາອອກ',hmNow()]],msg:'ມື້ນີ້ບໍ່ນັບອັດຕາກິນ'});
+      }).catch(e=>{render();fail(e);});
+    });
   },
   'mine-range':id=>{ui.mineRange=id;render();},
   reload:()=>{ui.loadErr='';render();refresh(true);},
@@ -316,7 +327,7 @@ const H={
     else{state.role='officer';state.me=id;state.tab.officer='home';ui.fresh=null;draft=newDraft();}
     prefs.chosen=true;save();render();window.scrollTo(0,0);
   },
-  tab:id=>{if(id!=='mine')ui.fresh=null;state.tab[state.role]=id;ui.confirmDel=null;ui.confirmOut=null;save();render();window.scrollTo(0,0);if(state.role==='officer'&&id==='new'&&ui.loaded)refresh(true);},
+  tab:id=>{if(id!=='mine')ui.fresh=null;state.tab[state.role]=id;ui.confirmDel=null;save();render();window.scrollTo(0,0);if(state.role==='officer'&&id==='new'&&ui.loaded)refresh(true);},
   logout:()=>{api('logout').catch(()=>{}).then(()=>{setToken('');render();toast('ອອກຈາກລະບົບແລ້ວ');});},
   detail:id=>openDetail(id),
   close:()=>closeModal(),
@@ -336,16 +347,28 @@ const H={
     }catch(e){toast('ສຳເນົາບໍ່ໄດ້ໃນເຄື່ອງນີ້: ກົດຄ້າງທີ່ຮູບແທນ');}
   },
   'self-return':(id,b)=>{
-    api('selfReturn',{id:id},b).then(()=>{const r=get(id);render();openDetail(id,'ກັບຄືນ '+fDT(r.returnedAt)+(r.late>0.01?' (ຊ້າ '+fmtH(r.late)+')':'')+' · ແຈ້ງຫົວໜ້າໜ່ວຍບໍລິການແລ້ວ');}).catch(e=>fail(e));
+    const r0=get(id);if(!r0)return;
+    ask({title:'ຢືນຢັນວ່າກັບມາປະຈຳການແລ້ວ?',rows:[['ໃບລາ',r0.no||'ແຈ້ງທາງໂທ'],['ປະເພດ',r0.type+' '+TYPES[r0.type].label],['ກຳນົດກັບ',fDate(expRet(r0))],['ເວລາກັບ',hmNow()]],ok:'ກັບຄືນແລ້ວ'}).then(go=>{
+      if(!go)return;
+      api('selfReturn',{id:id},b).then(()=>{const r=get(id);render();openDetail(id,'ກັບຄືນ '+fDT(r.returnedAt)+(r.late>0.01?' (ຊ້າ '+fmtH(r.late)+')':'')+' · ແຈ້ງຫົວໜ້າໜ່ວຍບໍລິການແລ້ວ');
+        const late=r.late>0.01;
+        pop({kind:late?'warn':'ok',title:'ບັນທຶກການກັບຄືນແລ້ວ',rows:[['ເວລາກັບ',fDT(r.returnedAt)],['ສະຖານະ',late?'ຊ້າ '+fmtH(r.late):'ກັບຕາມກຳນົດ']],msg:'ແຈ້ງຫົວໜ້າໜ່ວຍບໍລິການແລ້ວ'});
+      }).catch(e=>fail(e));
+    });
   },
   approve:(id,b)=>{
     const r=get(id),ta=$('#cm-'+id),m=$('#am-'+id),u=pendUI[id]=pendUI[id]||{};
     u.comment=ta.value;u.by=$('#by-'+id).value;
     const v=ta.value.trim();
     if(v.indexOf('ບໍ່ອະນຸມັດ')===0){m.textContent='ຄຳເຫັນຂຽນວ່າ "ບໍ່ອະນຸມັດ": ແກ້ຄຳເຫັນ ຫຼື ກົດປຸ່ມ ບໍ່ອະນຸມັດ.';m.className='form-msg bad';return;}
-    const nb=checks(r).filter(c=>c.lv==='bad').length;
-    if(nb&&u.arm!=='approve'){u.arm='approve';m.textContent='ໃບລານີ້ມີ '+nb+' ຂໍ້ບໍ່ຖືກລະບຽບ (✕). ກົດ ອະນຸມັດ ອີກຄັ້ງເພື່ອຢືນຢັນ.';m.className='form-msg bad';return;}
-    api('approve',{id:id,by:u.by.trim()||HEAD,comment:v||approveText(r)},b).then(()=>{delete pendUI[id];render();openDetail(id,'ອະນຸມັດແລ້ວ · ສົ່ງອອກເປັນຮູບເພື່ອແຈ້ງໃນກຸ່ມ');}).catch(e=>fail(e,m));
+    const bad=checks(r).filter(c=>c.lv==='bad'),o=off(r.officerId);
+    ask({kind:bad.length?'warn':'ask',title:'ອະນຸມັດໃບລານີ້?',msg:bad.length?'ໃບລານີ້ມີ '+bad.length+' ຂໍ້ບໍ່ຖືກລະບຽບ:':'',list:bad.map(c=>c.tx),
+      rows:[['ໃບລາ',r.no],['ຜູ້ລາ',o?full(o):''],['ປະເພດ',r.type+' '+TYPES[r.type].label],['ໄລຍະ',period(r)]],ok:'ອະນຸມັດ'}).then(go=>{
+      if(!go)return;
+      api('approve',{id:id,by:u.by.trim()||HEAD,comment:v||approveText(r)},b).then(()=>{delete pendUI[id];render();openDetail(id,'ອະນຸມັດແລ້ວ · ສົ່ງອອກເປັນຮູບເພື່ອແຈ້ງໃນກຸ່ມ');
+        pop({kind:'ok',title:'ອະນຸມັດໃບລາແລ້ວ',rows:[['ໃບລາ',r.no],['ຜູ້ລາ',o?full(o):'']],msg:'ກົດ "ສົ່ງອອກເປັນຮູບພາບ" ເພື່ອແຈ້ງໃນກຸ່ມ'});
+      }).catch(e=>fail(e,m));
+    });
   },
   reject:(id,b)=>{
     const ta=$('#cm-'+id),m=$('#am-'+id),u=pendUI[id]=pendUI[id]||{};
@@ -353,27 +376,39 @@ const H={
     const v=ta.value.trim();
     if(v.indexOf('ບໍ່ອະນຸມັດ')!==0){ta.value=prefix;u.comment=prefix;ta.focus();ta.setSelectionRange(ta.value.length,ta.value.length);m.textContent='ຂຽນເຫດຜົນທີ່ບໍ່ອະນຸມັດ ແລ້ວກົດ ບໍ່ອະນຸມັດ ອີກຄັ້ງ.';m.className='form-msg warn';return;}
     if(v.length<prefix.trim().length+4){ta.focus();m.textContent='ກະລຸນາຂຽນເຫດຜົນໃຫ້ຊັດເຈນ.';m.className='form-msg bad';return;}
-    api('reject',{id:id,by:$('#by-'+id).value.trim()||HEAD,comment:v},b).then(()=>{delete pendUI[id];render();openDetail(id,'ບໍ່ອະນຸມັດແລ້ວ · ສົ່ງອອກເປັນຮູບເພື່ອແຈ້ງໃນກຸ່ມ');}).catch(e=>fail(e,m));
+    const r=get(id),o=r&&off(r.officerId),by=$('#by-'+id).value.trim()||HEAD;
+    ask({kind:'warn',title:'ບໍ່ອະນຸມັດໃບລານີ້?',rows:[['ໃບລາ',r&&r.no],['ຜູ້ລາ',o?full(o):''],['ເຫດຜົນ',v]],ok:'ບໍ່ອະນຸມັດ',danger:true}).then(go=>{
+      if(!go)return;
+      api('reject',{id:id,by:by,comment:v},b).then(()=>{delete pendUI[id];render();openDetail(id,'ບໍ່ອະນຸມັດແລ້ວ · ສົ່ງອອກເປັນຮູບເພື່ອແຈ້ງໃນກຸ່ມ');
+        pop({kind:'ok',title:'ບັນທຶກບໍ່ອະນຸມັດແລ້ວ',rows:[['ໃບລາ',r&&r.no],['ຜູ້ລາ',o?full(o):'']],msg:'ກົດ "ສົ່ງອອກເປັນຮູບພາບ" ເພື່ອແຈ້ງໃນກຸ່ມ'});
+      }).catch(e=>fail(e,m));
+    });
   },
-  ack:(id,b)=>{api('ack',{id:id},b).then(()=>{render();toast('ຮັບຊາບການກັບຄືນແລ້ວ');}).catch(e=>fail(e));},
+  ack:(id,b)=>{const r=get(id),o=r&&off(r.officerId);api('ack',{id:id},b).then(()=>{render();pop({kind:'ok',title:'ຮັບຊາບການກັບຄືນແລ້ວ',rows:[['ໃບລາ',r&&r.no],['ຜູ້ລາ',o?full(o):'']]});}).catch(e=>fail(e));},
   'phone-open':()=>{ui.phoneOpen=!ui.phoneOpen;render();},
   'phone-cancel':()=>{ui.phoneOpen=false;render();},
   'phone-save':(id,b)=>{
     const type=$('#pf-t').value,d=$('#pf-d').value,m=$('#pf-msg');
     const tf=$('#pf-tf').value,tt=$('#pf-tt').value,ct=$('#pf-ct').value,by=$('#pf-by').value.trim();
-    if(!d||!ct||!by){m.textContent='ກະລຸນາໃສ່ວັນທີ, ເວລາໂທ ແລະ ຜູ້ຮັບແຈ້ງ.';m.className='form-msg bad';return;}
-    if(type==='ອຊ'&&(!tf||!tt||tt<=tf)){m.textContent='ອອກຊົ່ວຄາວ: ໃສ່ເວລາອອກ ແລະ ເວລາກັບໃຫ້ຖືກຕ້ອງ.';m.className='form-msg bad';return;}
+    if(!d||!ct||!by){m.textContent='ກະລຸນາໃສ່ວັນທີ, ເວລາໂທ ແລະ ຜູ້ຮັບແຈ້ງ.';m.className='form-msg bad';pop({kind:'warn',title:'ຂໍ້ມູນຍັງບໍ່ຄົບ',msg:m.textContent});return;}
+    if(type==='ອຊ'&&(!tf||!tt||tt<=tf)){m.textContent='ອອກຊົ່ວຄາວ: ໃສ່ເວລາອອກ ແລະ ເວລາກັບໃຫ້ຖືກຕ້ອງ.';m.className='form-msg bad';pop({kind:'warn',title:'ຂໍ້ມູນຍັງບໍ່ຄົບ',msg:m.textContent});return;}
     const oid=$('#pf-o').value,o=off(oid),h=actives().find(x=>String(x.id)!==String(oid));
     const r={officerId:oid,type:type,startDate:d,endDate:d,timeFrom:type==='ອຊ'?tf:'',timeTo:type==='ອຊ'?tt:'',detail:$('#pf-note').value.trim(),phone:o.phone,filing:'retro',callTime:ct,callTo:by,handoverTo:h?h.id:''};
     const clash=checks(Object.assign({id:'__p',reason:'',destination:'',emergencyName:'',emergencyPhone:'',pksReplacement:''},r)).find(c=>c.lv==='bad'&&c.tx.indexOf('ຫ້າມລາພ້ອມກັນ')===0);
-    api('phoneSave',{rec:r},b).then(()=>{ui.phoneOpen=false;render();toast(clash?'ບັນທຶກແລ້ວ · ລະວັງ: ບໍ່ມີຄົນຢູ່ປະຈຳການ ໃຫ້ຂໍຄົນແທນຈາກ ປກສ':'ບັນທຶກການແຈ້ງທາງໂທແລ້ວ · ລໍຖ້າໃບລາຍ້ອນຫຼັງ');}).catch(e=>fail(e,m));
+    api('phoneSave',{rec:r},b).then(()=>{ui.phoneOpen=false;render();pop({kind:clash?'warn':'ok',title:'ບັນທຶກການແຈ້ງທາງໂທແລ້ວ',rows:[['ຜູ້ລາ',o?full(o):''],['ປະເພດ',type+' '+TYPES[type].label],['ໂທແຈ້ງ',by+' · '+ct]],msg:clash?'ລະວັງ: ບໍ່ມີຄົນຢູ່ປະຈຳການ ໃຫ້ຂໍຄົນແທນຈາກ ປກສ':'ລໍຖ້າໃບລາຍ້ອນຫຼັງ'});}).catch(e=>fail(e,m));
   },
   'ret-save':(id,b)=>{
     const v=$('#ret-'+id).value;
-    if(!v){toast('ກະລຸນາໃສ່ເວລາກັບ');return;}
-    api('retSave',{id:id,at:v.slice(0,16)},b).then(()=>{const r=get(id);render();toast(r.late>0.01?'ບັນທຶກກັບຄືນແລ້ວ · ຊ້າ '+fmtH(r.late):'ບັນທຶກກັບຄືນແລ້ວ · ກັບຕາມກຳນົດ');}).catch(e=>fail(e));
+    if(!v){pop({kind:'warn',title:'ກະລຸນາໃສ່ເວລາກັບ'});return;}
+    api('retSave',{id:id,at:v.slice(0,16)},b).then(()=>{const r=get(id),o=off(r.officerId),late=r.late>0.01;render();pop({kind:late?'warn':'ok',title:'ບັນທຶກການກັບຄືນແລ້ວ',rows:[['ໃບລາ',r.no],['ຜູ້ລາ',o?full(o):''],['ເວລາກັບ',fDT(r.returnedAt)],['ສະຖານະ',late?'ຊ້າ '+fmtH(r.late):'ກັບຕາມກຳນົດ']]});}).catch(e=>fail(e));
   },
-  absent:(id,b)=>{api('absent',{id:id},b).then(()=>{render();toast('ໝາຍເປັນ "ຂາດ" ແລ້ວ');}).catch(e=>fail(e));},
+  absent:(id,b)=>{
+    const r=get(id),o=r&&off(r.officerId);
+    ask({kind:'warn',title:'ໝາຍເປັນ "ຂາດ"?',rows:[['ໃບລາ',r&&(r.no||'ແຈ້ງທາງໂທ')],['ຜູ້ລາ',o?full(o):''],['ປະເພດ',r&&(r.type+' '+TYPES[r.type].label)]],ok:'ໝາຍຂາດ',danger:true}).then(go=>{
+      if(!go)return;
+      api('absent',{id:id},b).then(()=>{render();pop({kind:'ok',title:'ໝາຍເປັນ "ຂາດ" ແລ້ວ',rows:[['ຜູ້ລາ',o?full(o):'']]});}).catch(e=>fail(e));
+    });
+  },
   'staff-del-ask':id=>{ui.confirmDel=id;render();},
   'staff-del-cancel':()=>{ui.confirmDel=null;render();},
   'staff-del':(id,b)=>{
@@ -401,13 +436,15 @@ const H={
   }
 };
 document.addEventListener('click',e=>{
+  if(e.target.id==='pop'){if(popDone)popDone(false);return;}
+  const pb=e.target.closest('[data-pop]');if(pb){if(popDone)popDone(pb.dataset.pop==='1');return;}
   if(e.target.id==='modal'){closeModal();return;}
   if(e.target.id==='xmodal'){$('#xmodal').hidden=true;return;}
   const b=e.target.closest('[data-act]');if(!b)return;
   const f=H[b.dataset.act];if(f)f(b.dataset.id,b);
 });
 document.addEventListener('keydown',e=>{
-  if(e.key==='Escape'){if(!$('#xmodal').hidden){$('#xmodal').hidden=true;return;}if(!$('#modal').hidden)closeModal();}
+  if(e.key==='Escape'){if(!$('#pop').hidden){if(popDone)popDone(false);return;}if(!$('#xmodal').hidden){$('#xmodal').hidden=true;return;}if(!$('#modal').hidden)closeModal();}
   if(e.key==='Enter'&&e.target.matches&&e.target.matches('tr.click'))openDetail(e.target.dataset.id);
 });
 

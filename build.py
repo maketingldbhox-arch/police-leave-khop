@@ -90,6 +90,9 @@ page = f'''<!DOCTYPE html>
   </div>
 </div>
 <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+<div id="pop" class="pop" hidden role="alertdialog" aria-modal="true" aria-labelledby="pop-t">
+  <div class="pop-card" id="pop-body"></div>
+</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script>

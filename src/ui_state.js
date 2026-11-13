@@ -97,7 +97,28 @@ function api(action,data,btn){
     return res;
   },e=>{setBusy(-1);if(btn)btn.disabled=false;throw new Error('ເຊື່ອມຕໍ່ເຊີບເວີບໍ່ໄດ້: ກວດອິນເຕີເນັດແລ້ວລອງໃໝ່');});
 }
-function fail(e,msgEl){const t=e&&e.message||String(e);if(msgEl){msgEl.textContent=t;msgEl.className='form-msg bad';}toast(t);}
+function fail(e,msgEl){const t=e&&e.message||String(e);if(msgEl){msgEl.textContent=t;msgEl.className='form-msg bad';}pop({kind:'bad',title:'ບໍ່ສຳເລັດ',msg:t});}
+/* ---------- popup: pop() shows a result, ask() asks to confirm; both resolve true/false ---------- */
+let popDone=null;
+function pop(o){
+  return new Promise(res=>{
+    if(popDone)popDone(false);
+    const k=o.kind||'ok',el=$('#pop');
+    const rows=(o.rows||[]).filter(r=>r&&r[1]);
+    const list=(o.list||[]).filter(Boolean);
+    $('#pop-body').innerHTML='<div class="pop-ic '+k+'" aria-hidden="true">'+({ok:'✓',bad:'✕',warn:'!',ask:'?'}[k]||'✓')+'</div>'+
+      '<h3 class="pop-t" id="pop-t">'+esc(o.title||'')+'</h3>'+(o.msg?'<p class="pop-m">'+esc(o.msg)+'</p>':'')+
+      (rows.length?'<dl class="pop-rows">'+rows.map(r=>'<dt>'+esc(r[0])+'</dt><dd>'+esc(r[1])+'</dd>').join('')+'</dl>':'')+
+      (list.length?'<ul class="pop-list">'+list.map(t=>'<li>'+esc(t)+'</li>').join('')+'</ul>':'')+
+      '<div class="pop-act">'+(o.cancel?'<button class="btn ghost" type="button" data-pop="0">'+esc(o.cancel)+'</button>':'')+
+      '<button class="btn '+(o.danger?'danger solid':'primary')+'" type="button" data-pop="1">'+esc(o.ok||'ຕົກລົງ')+'</button></div>';
+    el.hidden=false;
+    popDone=v=>{popDone=null;el.hidden=true;res(v);};
+    const b=el.querySelector('[data-pop="1"]');if(b)b.focus();
+  });
+}
+const ask=o=>pop(Object.assign({kind:'ask',cancel:'ຍົກເລີກ',ok:'ຢືນຢັນ'},o));
+const hmNow=()=>clockText().slice(0,5);
 function refresh(quiet){
   return api('load').then(res=>{ui.att=res.att||{err:'OLD'};if(state.role==='officer'&&state.tab.officer==='new'&&$('#lf'))syncFormLists();else render();if(!quiet)toast('ອັບເດດຂໍ້ມູນແລ້ວ');}).catch(e=>{if(!ui.loaded){ui.loadErr=e.message;render();}else toast(e.message);});
 }

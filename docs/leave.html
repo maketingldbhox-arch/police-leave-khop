@@ -386,6 +386,24 @@ main{padding-block:14px 24px}
 :root[data-theme="dark"] .pill.warn{background:#3a3000;color:#ffd659}
 .pill.new{background:var(--bad);color:#fff;margin-left:6px;gap:3px}
 .pill.new svg{width:13px;height:13px}
+/* popup (results + confirmations) */
+.pop{position:fixed;inset:0;z-index:85;background:var(--scrim);display:grid;place-items:center;padding:20px max(16px,env(safe-area-inset-right,0px)) 20px max(16px,env(safe-area-inset-left,0px));overflow-y:auto}
+.pop-card{background:var(--surface);color:var(--fg);border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,.25);width:100%;max-width:400px;padding:24px 20px 18px;text-align:center}
+.pop-ic{width:60px;height:60px;border-radius:50%;display:grid;place-items:center;margin:0 auto 12px;font-size:30px;font-weight:700;line-height:1}
+.pop-ic.ok{background:var(--good-soft);color:var(--good)}
+.pop-ic.bad{background:var(--bad-soft);color:var(--bad)}
+.pop-ic.warn{background:var(--warn-soft);color:var(--warn)}
+.pop-ic.ask{background:var(--accent-soft);color:var(--accent)}
+.pop-t{margin:0 0 6px;font-size:19px;line-height:1.4}
+.pop-m{margin:0 0 12px;color:var(--muted);font-size:14px}
+.pop-rows{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;text-align:left;background:var(--surface-2);border-radius:10px;padding:10px 14px;margin:0 0 14px;font-size:14px}
+.pop-rows dt{color:var(--muted)}
+.pop-rows dd{margin:0;font-weight:600;overflow-wrap:anywhere}
+.pop-list{text-align:left;margin:0 0 14px;padding:10px 14px 10px 32px;background:var(--bad-soft);color:var(--bad);border-radius:10px;font-size:14px}
+.pop-act{display:flex;gap:10px;margin-top:4px}
+.pop-act .btn{flex:1;padding:12px 14px}
+.btn.danger.solid{background:var(--bad);color:#fff;border-color:var(--bad)}
+@media (prefers-reduced-motion:no-preference){.pop:not([hidden]) .pop-card{animation:pop-in .16s ease-out}@keyframes pop-in{from{opacity:0;transform:scale(.94)}}}
 
 </style>
 <link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
@@ -437,6 +455,9 @@ main{padding-block:14px 24px}
   </div>
 </div>
 <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+<div id="pop" class="pop" hidden role="alertdialog" aria-modal="true" aria-labelledby="pop-t">
+  <div class="pop-card" id="pop-body"></div>
+</div>
 
 <script>
 /* GitHub Pages: forward google.script.run.leaveApi(...) to the Apps Script web app */
@@ -921,7 +942,28 @@ function api(action,data,btn){
     return res;
   },e=>{setBusy(-1);if(btn)btn.disabled=false;throw new Error('ເຊື່ອມຕໍ່ເຊີບເວີບໍ່ໄດ້: ກວດອິນເຕີເນັດແລ້ວລອງໃໝ່');});
 }
-function fail(e,msgEl){const t=e&&e.message||String(e);if(msgEl){msgEl.textContent=t;msgEl.className='form-msg bad';}toast(t);}
+function fail(e,msgEl){const t=e&&e.message||String(e);if(msgEl){msgEl.textContent=t;msgEl.className='form-msg bad';}pop({kind:'bad',title:'ບໍ່ສຳເລັດ',msg:t});}
+/* ---------- popup: pop() shows a result, ask() asks to confirm; both resolve true/false ---------- */
+let popDone=null;
+function pop(o){
+  return new Promise(res=>{
+    if(popDone)popDone(false);
+    const k=o.kind||'ok',el=$('#pop');
+    const rows=(o.rows||[]).filter(r=>r&&r[1]);
+    const list=(o.list||[]).filter(Boolean);
+    $('#pop-body').innerHTML='<div class="pop-ic '+k+'" aria-hidden="true">'+({ok:'✓',bad:'✕',warn:'!',ask:'?'}[k]||'✓')+'</div>'+
+      '<h3 class="pop-t" id="pop-t">'+esc(o.title||'')+'</h3>'+(o.msg?'<p class="pop-m">'+esc(o.msg)+'</p>':'')+
+      (rows.length?'<dl class="pop-rows">'+rows.map(r=>'<dt>'+esc(r[0])+'</dt><dd>'+esc(r[1])+'</dd>').join('')+'</dl>':'')+
+      (list.length?'<ul class="pop-list">'+list.map(t=>'<li>'+esc(t)+'</li>').join('')+'</ul>':'')+
+      '<div class="pop-act">'+(o.cancel?'<button class="btn ghost" type="button" data-pop="0">'+esc(o.cancel)+'</button>':'')+
+      '<button class="btn '+(o.danger?'danger solid':'primary')+'" type="button" data-pop="1">'+esc(o.ok||'ຕົກລົງ')+'</button></div>';
+    el.hidden=false;
+    popDone=v=>{popDone=null;el.hidden=true;res(v);};
+    const b=el.querySelector('[data-pop="1"]');if(b)b.focus();
+  });
+}
+const ask=o=>pop(Object.assign({kind:'ask',cancel:'ຍົກເລີກ',ok:'ຢືນຢັນ'},o));
+const hmNow=()=>clockText().slice(0,5);
 function refresh(quiet){
   return api('load').then(res=>{ui.att=res.att||{err:'OLD'};if(state.role==='officer'&&state.tab.officer==='new'&&$('#lf'))syncFormLists();else render();if(!quiet)toast('ອັບເດດຂໍ້ມູນແລ້ວ');}).catch(e=>{if(!ui.loaded){ui.loadErr=e.message;render();}else toast(e.message);});
 }
@@ -1116,7 +1158,6 @@ function attPart(it,mine){
   if(it.present){
     const pill='<span class="pill good">'+ic('check')+' ລົງເວລາແລ້ວ'+(it.inAt?' '+esc(it.inAt):'')+'</span>';
     if(!mine)return pill;
-    if(ui.confirmOut===String(it.id))return '<span class="att-ask">ອອກເວລາ ແລະ ບໍ່ຮັບອັດຕາກິນມື້ນີ້?</span><button class="btn danger sm" type="button" data-act="att-out-go" data-id="'+id+'">ຢືນຢັນອອກເວລາ</button><button class="btn ghost sm" type="button" data-act="att-out-no">ຍົກເລີກ</button>';
     return pill+'<button class="btn ghost sm att-out" type="button" data-act="att-out" data-id="'+id+'">'+ic('back')+' ອອກເວລາ</button>';
   }
   const outPill=it.outAt?'<span class="pill warn">ອອກເວລາແລ້ວ '+esc(it.outAt)+'</span>':'';
@@ -1361,13 +1402,25 @@ function render(){
 const H={
   'att-in':(id,b)=>{
     if(String(id)!==String(state.me))return;
-    api('attCheckin',{id:id},b).then(res=>{ui.att=res.att||ui.att;render();toast(res.already?'ທ່ານລົງເວລາມື້ນີ້ໄວ້ແລ້ວ':'ລົງເວລາເຂົ້າປະຈຳການແລ້ວ · '+clockText().slice(0,5));}).catch(e=>fail(e));
+    const o=off(id),who=o?full(o):'';
+    ask({title:'ລົງເວລາເຂົ້າປະຈຳການ?',rows:[['ຊື່',who],['ວັນທີ','ວັນ'+wd(today())+' '+fD(today())],['ເວລາ',hmNow()]],ok:'ລົງເວລາເຂົ້າ'}).then(go=>{
+      if(!go)return;
+      api('attCheckin',{id:id},b).then(res=>{ui.att=res.att||ui.att;render();
+        if(res.already)pop({kind:'warn',title:'ທ່ານລົງເວລາມື້ນີ້ໄວ້ແລ້ວ',msg:'ບໍ່ຕ້ອງລົງເວລາຊ້ຳ'});
+        else pop({kind:'ok',title:'ລົງເວລາເຂົ້າສຳເລັດ',rows:[['ຊື່',who],['ເວລາເຂົ້າ',hmNow()]],msg:'ຂໍໃຫ້ປະຕິບັດໜ້າທີ່ດ້ວຍຄວາມຮັບຜິດຊອບ'});
+      }).catch(e=>fail(e));
+    });
   },
-  'att-out':id=>{ui.confirmOut=String(id);render();},
-  'att-out-no':()=>{ui.confirmOut=null;render();},
-  'att-out-go':(id,b)=>{
+  'att-out':(id,b)=>{
     if(String(id)!==String(state.me))return;
-    api('attCheckout',{id:id},b).then(res=>{ui.confirmOut=null;ui.att=res.att||ui.att;render();toast(res.already?'ທ່ານຍັງບໍ່ໄດ້ລົງເວລາມື້ນີ້':'ອອກເວລາແລ້ວ · '+clockText().slice(0,5)+' · ມື້ນີ້ບໍ່ນັບອັດຕາກິນ');}).catch(e=>{ui.confirmOut=null;render();fail(e);});
+    const o=off(id),who=o?full(o):'';
+    ask({kind:'warn',title:'ອອກເວລາ?',msg:'ເມື່ອອອກເວລາ ມື້ນີ້ຈະບໍ່ນັບອັດຕາກິນ (ຂາດ/ພັກ · 0 ກີບ). ຖ້າກົດຜິດ ກົດ "ລົງເວລາເຂົ້າ" ຄືນໄດ້.',rows:[['ຊື່',who],['ເວລາ',hmNow()]],ok:'ຢືນຢັນອອກເວລາ',danger:true}).then(go=>{
+      if(!go)return;
+      api('attCheckout',{id:id},b).then(res=>{ui.att=res.att||ui.att;render();
+        if(res.already)pop({kind:'warn',title:'ທ່ານຍັງບໍ່ໄດ້ລົງເວລາມື້ນີ້',msg:'ບໍ່ມີການລົງເວລາເຂົ້າໃຫ້ອອກ'});
+        else pop({kind:'ok',title:'ອອກເວລາສຳເລັດ',rows:[['ຊື່',who],['ເວລາອອກ',hmNow()]],msg:'ມື້ນີ້ບໍ່ນັບອັດຕາກິນ'});
+      }).catch(e=>{render();fail(e);});
+    });
   },
   'mine-range':id=>{ui.mineRange=id;render();},
   reload:()=>{ui.loadErr='';render();refresh(true);},
@@ -1378,7 +1431,7 @@ const H={
     else{state.role='officer';state.me=id;state.tab.officer='home';ui.fresh=null;draft=newDraft();}
     prefs.chosen=true;save();render();window.scrollTo(0,0);
   },
-  tab:id=>{if(id!=='mine')ui.fresh=null;state.tab[state.role]=id;ui.confirmDel=null;ui.confirmOut=null;save();render();window.scrollTo(0,0);if(state.role==='officer'&&id==='new'&&ui.loaded)refresh(true);},
+  tab:id=>{if(id!=='mine')ui.fresh=null;state.tab[state.role]=id;ui.confirmDel=null;save();render();window.scrollTo(0,0);if(state.role==='officer'&&id==='new'&&ui.loaded)refresh(true);},
   logout:()=>{api('logout').catch(()=>{}).then(()=>{setToken('');render();toast('ອອກຈາກລະບົບແລ້ວ');});},
   detail:id=>openDetail(id),
   close:()=>closeModal(),
@@ -1398,16 +1451,28 @@ const H={
     }catch(e){toast('ສຳເນົາບໍ່ໄດ້ໃນເຄື່ອງນີ້: ກົດຄ້າງທີ່ຮູບແທນ');}
   },
   'self-return':(id,b)=>{
-    api('selfReturn',{id:id},b).then(()=>{const r=get(id);render();openDetail(id,'ກັບຄືນ '+fDT(r.returnedAt)+(r.late>0.01?' (ຊ້າ '+fmtH(r.late)+')':'')+' · ແຈ້ງຫົວໜ້າໜ່ວຍບໍລິການແລ້ວ');}).catch(e=>fail(e));
+    const r0=get(id);if(!r0)return;
+    ask({title:'ຢືນຢັນວ່າກັບມາປະຈຳການແລ້ວ?',rows:[['ໃບລາ',r0.no||'ແຈ້ງທາງໂທ'],['ປະເພດ',r0.type+' '+TYPES[r0.type].label],['ກຳນົດກັບ',fDate(expRet(r0))],['ເວລາກັບ',hmNow()]],ok:'ກັບຄືນແລ້ວ'}).then(go=>{
+      if(!go)return;
+      api('selfReturn',{id:id},b).then(()=>{const r=get(id);render();openDetail(id,'ກັບຄືນ '+fDT(r.returnedAt)+(r.late>0.01?' (ຊ້າ '+fmtH(r.late)+')':'')+' · ແຈ້ງຫົວໜ້າໜ່ວຍບໍລິການແລ້ວ');
+        const late=r.late>0.01;
+        pop({kind:late?'warn':'ok',title:'ບັນທຶກການກັບຄືນແລ້ວ',rows:[['ເວລາກັບ',fDT(r.returnedAt)],['ສະຖານະ',late?'ຊ້າ '+fmtH(r.late):'ກັບຕາມກຳນົດ']],msg:'ແຈ້ງຫົວໜ້າໜ່ວຍບໍລິການແລ້ວ'});
+      }).catch(e=>fail(e));
+    });
   },
   approve:(id,b)=>{
     const r=get(id),ta=$('#cm-'+id),m=$('#am-'+id),u=pendUI[id]=pendUI[id]||{};
     u.comment=ta.value;u.by=$('#by-'+id).value;
     const v=ta.value.trim();
     if(v.indexOf('ບໍ່ອະນຸມັດ')===0){m.textContent='ຄຳເຫັນຂຽນວ່າ "ບໍ່ອະນຸມັດ": ແກ້ຄຳເຫັນ ຫຼື ກົດປຸ່ມ ບໍ່ອະນຸມັດ.';m.className='form-msg bad';return;}
-    const nb=checks(r).filter(c=>c.lv==='bad').length;
-    if(nb&&u.arm!=='approve'){u.arm='approve';m.textContent='ໃບລານີ້ມີ '+nb+' ຂໍ້ບໍ່ຖືກລະບຽບ (✕). ກົດ ອະນຸມັດ ອີກຄັ້ງເພື່ອຢືນຢັນ.';m.className='form-msg bad';return;}
-    api('approve',{id:id,by:u.by.trim()||HEAD,comment:v||approveText(r)},b).then(()=>{delete pendUI[id];render();openDetail(id,'ອະນຸມັດແລ້ວ · ສົ່ງອອກເປັນຮູບເພື່ອແຈ້ງໃນກຸ່ມ');}).catch(e=>fail(e,m));
+    const bad=checks(r).filter(c=>c.lv==='bad'),o=off(r.officerId);
+    ask({kind:bad.length?'warn':'ask',title:'ອະນຸມັດໃບລານີ້?',msg:bad.length?'ໃບລານີ້ມີ '+bad.length+' ຂໍ້ບໍ່ຖືກລະບຽບ:':'',list:bad.map(c=>c.tx),
+      rows:[['ໃບລາ',r.no],['ຜູ້ລາ',o?full(o):''],['ປະເພດ',r.type+' '+TYPES[r.type].label],['ໄລຍະ',period(r)]],ok:'ອະນຸມັດ'}).then(go=>{
+      if(!go)return;
+      api('approve',{id:id,by:u.by.trim()||HEAD,comment:v||approveText(r)},b).then(()=>{delete pendUI[id];render();openDetail(id,'ອະນຸມັດແລ້ວ · ສົ່ງອອກເປັນຮູບເພື່ອແຈ້ງໃນກຸ່ມ');
+        pop({kind:'ok',title:'ອະນຸມັດໃບລາແລ້ວ',rows:[['ໃບລາ',r.no],['ຜູ້ລາ',o?full(o):'']],msg:'ກົດ "ສົ່ງອອກເປັນຮູບພາບ" ເພື່ອແຈ້ງໃນກຸ່ມ'});
+      }).catch(e=>fail(e,m));
+    });
   },
   reject:(id,b)=>{
     const ta=$('#cm-'+id),m=$('#am-'+id),u=pendUI[id]=pendUI[id]||{};
@@ -1415,27 +1480,39 @@ const H={
     const v=ta.value.trim();
     if(v.indexOf('ບໍ່ອະນຸມັດ')!==0){ta.value=prefix;u.comment=prefix;ta.focus();ta.setSelectionRange(ta.value.length,ta.value.length);m.textContent='ຂຽນເຫດຜົນທີ່ບໍ່ອະນຸມັດ ແລ້ວກົດ ບໍ່ອະນຸມັດ ອີກຄັ້ງ.';m.className='form-msg warn';return;}
     if(v.length<prefix.trim().length+4){ta.focus();m.textContent='ກະລຸນາຂຽນເຫດຜົນໃຫ້ຊັດເຈນ.';m.className='form-msg bad';return;}
-    api('reject',{id:id,by:$('#by-'+id).value.trim()||HEAD,comment:v},b).then(()=>{delete pendUI[id];render();openDetail(id,'ບໍ່ອະນຸມັດແລ້ວ · ສົ່ງອອກເປັນຮູບເພື່ອແຈ້ງໃນກຸ່ມ');}).catch(e=>fail(e,m));
+    const r=get(id),o=r&&off(r.officerId),by=$('#by-'+id).value.trim()||HEAD;
+    ask({kind:'warn',title:'ບໍ່ອະນຸມັດໃບລານີ້?',rows:[['ໃບລາ',r&&r.no],['ຜູ້ລາ',o?full(o):''],['ເຫດຜົນ',v]],ok:'ບໍ່ອະນຸມັດ',danger:true}).then(go=>{
+      if(!go)return;
+      api('reject',{id:id,by:by,comment:v},b).then(()=>{delete pendUI[id];render();openDetail(id,'ບໍ່ອະນຸມັດແລ້ວ · ສົ່ງອອກເປັນຮູບເພື່ອແຈ້ງໃນກຸ່ມ');
+        pop({kind:'ok',title:'ບັນທຶກບໍ່ອະນຸມັດແລ້ວ',rows:[['ໃບລາ',r&&r.no],['ຜູ້ລາ',o?full(o):'']],msg:'ກົດ "ສົ່ງອອກເປັນຮູບພາບ" ເພື່ອແຈ້ງໃນກຸ່ມ'});
+      }).catch(e=>fail(e,m));
+    });
   },
-  ack:(id,b)=>{api('ack',{id:id},b).then(()=>{render();toast('ຮັບຊາບການກັບຄືນແລ້ວ');}).catch(e=>fail(e));},
+  ack:(id,b)=>{const r=get(id),o=r&&off(r.officerId);api('ack',{id:id},b).then(()=>{render();pop({kind:'ok',title:'ຮັບຊາບການກັບຄືນແລ້ວ',rows:[['ໃບລາ',r&&r.no],['ຜູ້ລາ',o?full(o):'']]});}).catch(e=>fail(e));},
   'phone-open':()=>{ui.phoneOpen=!ui.phoneOpen;render();},
   'phone-cancel':()=>{ui.phoneOpen=false;render();},
   'phone-save':(id,b)=>{
     const type=$('#pf-t').value,d=$('#pf-d').value,m=$('#pf-msg');
     const tf=$('#pf-tf').value,tt=$('#pf-tt').value,ct=$('#pf-ct').value,by=$('#pf-by').value.trim();
-    if(!d||!ct||!by){m.textContent='ກະລຸນາໃສ່ວັນທີ, ເວລາໂທ ແລະ ຜູ້ຮັບແຈ້ງ.';m.className='form-msg bad';return;}
-    if(type==='ອຊ'&&(!tf||!tt||tt<=tf)){m.textContent='ອອກຊົ່ວຄາວ: ໃສ່ເວລາອອກ ແລະ ເວລາກັບໃຫ້ຖືກຕ້ອງ.';m.className='form-msg bad';return;}
+    if(!d||!ct||!by){m.textContent='ກະລຸນາໃສ່ວັນທີ, ເວລາໂທ ແລະ ຜູ້ຮັບແຈ້ງ.';m.className='form-msg bad';pop({kind:'warn',title:'ຂໍ້ມູນຍັງບໍ່ຄົບ',msg:m.textContent});return;}
+    if(type==='ອຊ'&&(!tf||!tt||tt<=tf)){m.textContent='ອອກຊົ່ວຄາວ: ໃສ່ເວລາອອກ ແລະ ເວລາກັບໃຫ້ຖືກຕ້ອງ.';m.className='form-msg bad';pop({kind:'warn',title:'ຂໍ້ມູນຍັງບໍ່ຄົບ',msg:m.textContent});return;}
     const oid=$('#pf-o').value,o=off(oid),h=actives().find(x=>String(x.id)!==String(oid));
     const r={officerId:oid,type:type,startDate:d,endDate:d,timeFrom:type==='ອຊ'?tf:'',timeTo:type==='ອຊ'?tt:'',detail:$('#pf-note').value.trim(),phone:o.phone,filing:'retro',callTime:ct,callTo:by,handoverTo:h?h.id:''};
     const clash=checks(Object.assign({id:'__p',reason:'',destination:'',emergencyName:'',emergencyPhone:'',pksReplacement:''},r)).find(c=>c.lv==='bad'&&c.tx.indexOf('ຫ້າມລາພ້ອມກັນ')===0);
-    api('phoneSave',{rec:r},b).then(()=>{ui.phoneOpen=false;render();toast(clash?'ບັນທຶກແລ້ວ · ລະວັງ: ບໍ່ມີຄົນຢູ່ປະຈຳການ ໃຫ້ຂໍຄົນແທນຈາກ ປກສ':'ບັນທຶກການແຈ້ງທາງໂທແລ້ວ · ລໍຖ້າໃບລາຍ້ອນຫຼັງ');}).catch(e=>fail(e,m));
+    api('phoneSave',{rec:r},b).then(()=>{ui.phoneOpen=false;render();pop({kind:clash?'warn':'ok',title:'ບັນທຶກການແຈ້ງທາງໂທແລ້ວ',rows:[['ຜູ້ລາ',o?full(o):''],['ປະເພດ',type+' '+TYPES[type].label],['ໂທແຈ້ງ',by+' · '+ct]],msg:clash?'ລະວັງ: ບໍ່ມີຄົນຢູ່ປະຈຳການ ໃຫ້ຂໍຄົນແທນຈາກ ປກສ':'ລໍຖ້າໃບລາຍ້ອນຫຼັງ'});}).catch(e=>fail(e,m));
   },
   'ret-save':(id,b)=>{
     const v=$('#ret-'+id).value;
-    if(!v){toast('ກະລຸນາໃສ່ເວລາກັບ');return;}
-    api('retSave',{id:id,at:v.slice(0,16)},b).then(()=>{const r=get(id);render();toast(r.late>0.01?'ບັນທຶກກັບຄືນແລ້ວ · ຊ້າ '+fmtH(r.late):'ບັນທຶກກັບຄືນແລ້ວ · ກັບຕາມກຳນົດ');}).catch(e=>fail(e));
+    if(!v){pop({kind:'warn',title:'ກະລຸນາໃສ່ເວລາກັບ'});return;}
+    api('retSave',{id:id,at:v.slice(0,16)},b).then(()=>{const r=get(id),o=off(r.officerId),late=r.late>0.01;render();pop({kind:late?'warn':'ok',title:'ບັນທຶກການກັບຄືນແລ້ວ',rows:[['ໃບລາ',r.no],['ຜູ້ລາ',o?full(o):''],['ເວລາກັບ',fDT(r.returnedAt)],['ສະຖານະ',late?'ຊ້າ '+fmtH(r.late):'ກັບຕາມກຳນົດ']]});}).catch(e=>fail(e));
   },
-  absent:(id,b)=>{api('absent',{id:id},b).then(()=>{render();toast('ໝາຍເປັນ "ຂາດ" ແລ້ວ');}).catch(e=>fail(e));},
+  absent:(id,b)=>{
+    const r=get(id),o=r&&off(r.officerId);
+    ask({kind:'warn',title:'ໝາຍເປັນ "ຂາດ"?',rows:[['ໃບລາ',r&&(r.no||'ແຈ້ງທາງໂທ')],['ຜູ້ລາ',o?full(o):''],['ປະເພດ',r&&(r.type+' '+TYPES[r.type].label)]],ok:'ໝາຍຂາດ',danger:true}).then(go=>{
+      if(!go)return;
+      api('absent',{id:id},b).then(()=>{render();pop({kind:'ok',title:'ໝາຍເປັນ "ຂາດ" ແລ້ວ',rows:[['ຜູ້ລາ',o?full(o):'']]});}).catch(e=>fail(e));
+    });
+  },
   'staff-del-ask':id=>{ui.confirmDel=id;render();},
   'staff-del-cancel':()=>{ui.confirmDel=null;render();},
   'staff-del':(id,b)=>{
@@ -1463,13 +1540,15 @@ const H={
   }
 };
 document.addEventListener('click',e=>{
+  if(e.target.id==='pop'){if(popDone)popDone(false);return;}
+  const pb=e.target.closest('[data-pop]');if(pb){if(popDone)popDone(pb.dataset.pop==='1');return;}
   if(e.target.id==='modal'){closeModal();return;}
   if(e.target.id==='xmodal'){$('#xmodal').hidden=true;return;}
   const b=e.target.closest('[data-act]');if(!b)return;
   const f=H[b.dataset.act];if(f)f(b.dataset.id,b);
 });
 document.addEventListener('keydown',e=>{
-  if(e.key==='Escape'){if(!$('#xmodal').hidden){$('#xmodal').hidden=true;return;}if(!$('#modal').hidden)closeModal();}
+  if(e.key==='Escape'){if(!$('#pop').hidden){if(popDone)popDone(false);return;}if(!$('#xmodal').hidden){$('#xmodal').hidden=true;return;}if(!$('#modal').hidden)closeModal();}
   if(e.key==='Enter'&&e.target.matches&&e.target.matches('tr.click'))openDetail(e.target.dataset.id);
 });
 
@@ -1675,14 +1754,18 @@ document.addEventListener('submit',e=>{
   if(e.target.id!=='lf')return;
   e.preventDefault();
   const r=draftRec(),bad=checks(r).filter(c=>c.lv==='bad'),msg=$('#f-msg');
-  if(bad.length){msg.textContent='ຍັງສົ່ງບໍ່ໄດ້: ແກ້ໄຂ '+bad.length+' ຂໍ້ທີ່ໝາຍ ✕ ກ່ອນ.';msg.className='form-msg bad';$('#f-checks').scrollIntoView({block:'center'});return;}
-  if(!draft.pledge){msg.textContent='ກະລຸນາໝາຍຢັ້ງຢືນຂໍ້ມູນກ່ອນສົ່ງ.';msg.className='form-msg bad';return;}
-  const btn=$('#f-submit');
-  api('submit',{rec:r,linkId:draft.linkId||null},btn).then(res=>{
-    draft=newDraft();state.tab.officer='mine';save();render();window.scrollTo(0,0);
-    const rec=get(res.id);
-    openDetail(res.id,'ສົ່ງໃບລາ '+(rec?rec.no:'')+' ແລ້ວ · ສົ່ງອອກເປັນຮູບເພື່ອແຈ້ງໃນກຸ່ມ');
-  }).catch(err=>fail(err,msg));
+  if(bad.length){msg.textContent='ຍັງສົ່ງບໍ່ໄດ້: ແກ້ໄຂ '+bad.length+' ຂໍ້ທີ່ໝາຍ ✕ ກ່ອນ.';msg.className='form-msg bad';pop({kind:'warn',title:'ຍັງສົ່ງໃບລາບໍ່ໄດ້',msg:'ແກ້ໄຂ '+bad.length+' ຂໍ້ນີ້ກ່ອນ:',list:bad.map(c=>c.tx)}).then(()=>{const c=$('#f-checks');if(c)c.scrollIntoView({block:'center'});});return;}
+  if(!draft.pledge){msg.textContent='ກະລຸນາໝາຍຢັ້ງຢືນຂໍ້ມູນກ່ອນສົ່ງ.';msg.className='form-msg bad';pop({kind:'warn',title:'ຍັງສົ່ງໃບລາບໍ່ໄດ້',msg:'ກະລຸນາໝາຍຢັ້ງຢືນຂໍ້ມູນກ່ອນສົ່ງ'});return;}
+  const btn=$('#f-submit'),o=off(r.officerId);
+  ask({title:'ສົ່ງໃບລານີ້?',rows:[['ຜູ້ລາ',o?full(o):''],['ປະເພດ',r.type+' '+TYPES[r.type].label],['ໄລຍະ',period(r)],['ເຫດຜົນ',r.reason]],msg:'ໃບລາຈະສົ່ງໄປໃຫ້ຫົວໜ້າໜ່ວຍບໍລິການອະນຸມັດ',ok:'ສົ່ງໃບລາ'}).then(go=>{
+    if(!go)return;
+    api('submit',{rec:r,linkId:draft.linkId||null},btn).then(res=>{
+      draft=newDraft();state.tab.officer='mine';save();render();window.scrollTo(0,0);
+      const rec=get(res.id);
+      openDetail(res.id,'ສົ່ງໃບລາ '+(rec?rec.no:'')+' ແລ້ວ · ສົ່ງອອກເປັນຮູບເພື່ອແຈ້ງໃນກຸ່ມ');
+      pop({kind:'ok',title:'ສົ່ງໃບລາສຳເລັດ',rows:[['ເລກທີ',rec&&rec.no],['ປະເພດ',r.type+' '+TYPES[r.type].label],['ໄລຍະ',period(r)]],msg:'ລໍຖ້າຫົວໜ້າໜ່ວຍບໍລິການອະນຸມັດ'});
+    }).catch(err=>fail(err,msg));
+  });
 });
 
 $('#today').textContent='ວັນ'+wd(today())+' '+fD(today());
